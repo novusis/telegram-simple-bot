@@ -1,0 +1,407 @@
+{
+  "bot_name": {
+    "en": "treasure_trip_bot"
+  },
+  "bot_link_param": {
+    "en": "https://t.me/[[bot_name]]?start="
+  },
+  "bot_invite_url": {
+    "en": "[[bot_link_param]]f={0}"
+  },
+  "button_start_new_game": {
+    "en": "⚔\uFE0F START NEW GAME"
+  },
+  "button_start_game": {
+    "en": "⚔\uFE0F START GAME"
+  },
+  "button_continue": {
+    "en": "CONTINUE \uD83D\uDDFA"
+  },
+  "button_bonuses": {
+    "en": "BONUSES‼\uFE0F"
+  },
+  "button_top": {
+    "en": "TOP {0} \uD83C\uDFC6"
+  },
+  "slot_icon_empty": {
+    "en": " "
+  },
+  "slot_icon_star": {
+    "en": "⭐"
+  },
+  "slot_icon_coin": {
+    "en": "\uD83D\uDFE1"
+  },
+  "slot_icon_item_smarty_hat": {
+    "en": "\uD83C\uDFA9"
+  },
+  "slot_icon_item_woodcutters_ax": {
+    "en": "\uD83E\uDE93"
+  },
+  "slot_icon_item_shot_sword": {
+    "en": "\uD83D\uDDE1"
+  },
+  "slot_icon_item_bow": {
+    "en": "\uD83C\uDFF9"
+  },
+  "slot_icon_items_shop": {
+    "en": "⛺\uFE0F"
+  },
+  "slot_icon_shop": {
+    "en": "\uD83C\uDFE0"
+  },
+  "slot_icon_live": {
+    "en": "❤\uFE0F"
+  },
+  "slot_icon_low_live": {
+    "en": "\uD83D\uDC94"
+  },
+  "slot_icon_enemy": {
+    "en": "\uD83D\uDC80"
+  },
+  "slot_icon_enemy_ghost_boss": {
+    "en": "\uD83D\uDC7B"
+  },
+  "slot_icon_enemy_crocodile": {
+    "en": "\uD83D\uDC0A"
+  },
+  "slot_icon_enemy_devil": {
+    "en": "\uD83D\uDC7F"
+  },
+  "slot_icon_energy": {
+    "en": "⚡"
+  },
+  "slot_icon_armor": {
+    "en": "\uD83D\uDEE1"
+  },
+  "slot_icon_slot_machine": {
+    "en": "\uD83C\uDFB0"
+  },
+  "action_start_tutorial": {
+    "en": "\uD83C\uDFA9 TUTORIAL"
+  },
+  "action_try_again": {
+    "en": "🍀 TRY AGAIN"
+  },
+  "action_start_game": {
+    "en": "🍀 START GAME"
+  },
+  "action_continue": {
+    "en": "🍀 CONTINUE"
+  },
+  "action_top_count": {
+    "en": "⛰\uFE0F TOP {0}"
+  },
+  "action_run": {
+    "en": "🏃 RUN"
+  },
+  "action_collect": {
+    "en": "\uD83D\uDCAB COLLECT"
+  },
+  "action_walk": {
+    "en": "\uD83D\uDEB6 WALK"
+  },
+  "action_fight": {
+    "en": "[[action_fight_hand]] FIGHT"
+  },
+  "action_fight_hand": {
+    "en": "\uD83D\uDC4A"
+  },
+  "action_multy_fight": {
+    "en": "{0} FIGHT"
+  },
+  "action_weapon_fight": {
+    "en": "{0} USE"
+  },
+  "action_change_weapon": {
+    "en": "\uD83D\uDD04 "
+  },
+  "paysupport": {
+    "en": "Stars cannot be returned..."
+  },
+  "action_shop": {
+    "en": "[[slot_icon_shop]] SHOP"
+  },
+  "action_items_shop": {
+    "en": "[[slot_icon_items_shop]] STUFF STORE"
+  },
+  "action_slot_machine": {
+    "en": "[[slot_icon_slot_machine]] CASINO"
+  },
+  "action_slot_machine_bet": {
+    "en": "[[slot_icon_slot_machine]] BET [[slot_icon_coin]] {0}"
+  },
+  "action_back_to_game": {
+    "en": "[[map_icon]] BACK"
+  },
+  "action_stars_shop_item": {
+    "en": "BUY {0} = [[slot_icon_star]] {1}"
+  },
+  "action_shop_item": {
+    "en": "BUY {0} = [[slot_icon_coin]] {1}"
+  },
+  "slot_machine_win": {
+    "en": "You win + [[slot_icon_coin]] {0}"
+  },
+  "want_buy_for_stars": {
+    "en": "Purchase {0}"
+  },
+  "shop_item_description_stars_for_slot_coins_1": {
+    "en": "\uD83C\uDFA9 Fortune will be favorable, good wanderer {0}."
+  },
+  "shop_item_description_stars_for_slot_coins_2": {
+    "en": "\uD83C\uDFA9 Fortune will be favorable, good wanderer {0}."
+  },
+  "shop_item_description_stars_for_coins_1": {
+    "en": "\uD83C\uDFA9 Fortune will be favorable, good wanderer {0}."
+  },
+  "shop_item_description_stars_for_coins_and_armor_1": {
+    "en": "\uD83C\uDFA9 Good choice for good protection {0}!"
+  },
+  "shop_item_description_stars_for_coins_and_armor_and_live_1": {
+    "en": "\uD83C\uDFA9 Real luck for big people {0}!"
+  },
+  "map_icon": {
+    "en": "\uD83D\uDDFA"
+  },
+  "main_music": {
+    "en": "Play main music..."
+  },
+  "start_welcome_back": {
+    "en": "Welcome back dear <b>{0}</b>. Lets`s go to your <b>Treasure Trip</b>!"
+  },
+  "start_first": {
+    "en": "Lets`s go @{0} to your first <b>Treasure Trip</b>!"
+  },
+  "delete_user_complete": {
+    "en": "<b>Treasure Trip</b> user <b>{0}</b> has been <b>remove</b>!"
+  },
+  "delete_user_stop": {
+    "en": "<b>Treasure Trip</b> user <b>{0}</b> has decided <b>not</b> to remove..."
+  },
+  "message_top_text": {
+    "en": "<b>Treasure Trip</b><code> \uD83C\uDFC6 TOP {0}:\n{1}</code>"
+  },
+  "item_spend_type_level": {
+    "en": "Used at every level"
+  },
+  "item_spend_type_use": {
+    "en": "Spent by use"
+  },
+  "item_full_info": {
+    "en": "{0}  - <b>{1}</b>\n<i>{2}</i>\n{3}\nCount: <b>{4}</b>\n{5}"
+  },
+  "item_full_info2": {
+    "en": "{0}  - <b>{1}</b>\n{2}\nCount: <b>{3}</b>\n{4}"
+  },
+  "item_param_chance": {
+    "en": "Attack chance: <b>{0}</b>"
+  },
+  "item_param_damage": {
+    "en": "Damage: <b>{0}</b>"
+  },
+  "level_text_item": {
+    "en": "│ {0} {1} - </code><a href=\"[[bot_link_param]]i={3}\">{2}</a><code>\n"
+  },
+  "level_title": {
+    "en": "<code>Level: <b>{0}</b> [[map_icon]]</code>"
+  },
+  "level_text": {
+    "en": "<code>┌╴{2}╶─╴{3}╶─╴{4}╶┄\n{5}└{1}┄</code>"
+  },
+  "game_over": {
+    "en": "<b>\uD83D\uDCA5 Game Over \uD83D\uDCA5</b>\nYour Trip has come to an end <b>{0}</b>, try again!\nResult:\n \uD83D\uDDFA <b>{1}</b> \n \uD83D\uDC80 <b>{2}</b>"
+  },
+  "collect_followers_bonus": {
+    "en": "COLLECT BONUS [[slot_icon_coin]] {0}"
+  },
+  "bonus_followers": {
+    "en": "Bonus for followers \uD83C\uDF89 <code>{0}</code>"
+  },
+  "your_followers": {
+    "en": "Your followers \uD83E\uDD3A:"
+  },
+  "follower_no_played": {
+    "en": "<a href=\"tg://resolve?domain={0}\">NO PLAYED TODAY</a>"
+  },
+  "bonus_is_ready": {
+    "en": "start game bonus [[slot_icon_coin]] {0}"
+  },
+  "next_bonus_in": {
+    "en": "wait bonus \uD83D\uDD70 {0}"
+  },
+  "invite_followers_text": {
+    "en": "Spread <b>your link</b> and receive a <b>bonus [[slot_icon_coin]]</b> at the start of the game for each follower!\nCopy this link to your clipboard:\n\n<b>[[bot_invite_url]]</b>\n\n<i>The bonus is credited once every {1} hours if the subscriber play into the game once every {2} hours. Maximum of {3} subscribers are taken into account per start</i>"
+  },
+  "bonus_for_followers_invite": {
+    "en": "Added more friends to the <b>Treasure Trip</b> game \uD83C\uDF44\n[[invite_followers_text]]"
+  },
+  "no_followers": {
+    "en": "No followers \uD83D\uDE30\nInvite your friends, it will be interesting!"
+  },
+  "follower_himself_error": {
+    "en": "You can't subscribe to yourself...\nSpread <b>link</b> for friends:\n<b>[[bot_invite_url]]</b>\nAnd receive a <b>bonus [[slot_icon_coin]]</b> at the start of the game."
+  },
+  "added_follower": {
+    "en": "added new friend <b>{0}</b>"
+  },
+  "user_exists_followers": {
+    "en": "Player <b>{0}</b> exists in followers."
+  },
+  "open_your_invite_url": {
+    "en": "Open invite link"
+  },
+  "set_prefix_complete": {
+    "en": "Welcome <b>{0}</b> to your <b>Treasure Trip</b>"
+  },
+  "new_registration": {
+    "en": "<b>Treasure Trip {0}</b> new registration. Set your name prefix please:"
+  },
+  "no_name_prefix": {
+    "en": "No Prefix"
+  },
+  "continue_trip": {
+    "en": "<b>Treasure Trip</b> good luck {0}..."
+  },
+  "help_text_bug": {
+    "en": "Treasure Trip - the game and adventures in a medieval setting, <b>fight</b> and collect [[slot_icon_coin]] <b>coins</b>!\n[[slot_icon_enemy]] is Enemy, if you see him, you will have to [[action_fight]] or [[action_run]]\n[[action_fight]] with him cost <b>-2</b> [[slot_icon_live]] Lives or [[action_run]] cost <b>-1</b> [[slot_icon_live]] Lives\nBut if you have [[slot_icon_armor]] Armor you will lost <b>-1</b> [[slot_icon_live]] Lives and <b>-1</b> [[slot_icon_armor]] Armor per one [[slot_icon_enemy]] Enemy...\nIf you see [[slot_icon_shop]], welcome to shopping, tap to the [[action_shop]]..."
+  },
+  "help_text": {
+    "en": "[[slot_icon_item_smarty_hat]] - <b>Treasure Trip</b> is simple, you will be collect [[slot_icon_coin]] <b>coins</b> and unlock new levels [[map_icon]].\n[[slot_icon_enemy]] - is Enemy, if you see him, you will have to [[action_fight]] or [[action_run]]\n[[action_fight]] with him cost <b>-2</b> [[slot_icon_live]] Lives or [[action_run]] cost <b>-1</b> [[slot_icon_live]] Lives\nBut if you have [[slot_icon_armor]] armor, it will reduce the damage by half...\nIf you weill be see [[slot_icon_shop]][[slot_icon_items_shop]], welcome to shopping...\nMore information /help"
+  },
+  "help_text2": {
+    "en": "<b>Treasure Trip</b> - is a game set in a medieval world. Fight and collect [[slot_icon_coin]] coins! The game consists of locations with {0} levels each. The location determines the type of enemies, buildings, and resources you will encounter.\n\n<b>Each level [[map_icon]]</b> has 4 game fields with randomly placed enemies {1}, resources [[slot_icon_live]][[slot_icon_coin]][[slot_icon_armor]], and buildings [[slot_icon_shop]][[slot_icon_items_shop]][[slot_icon_slot_machine]].\n- If there are no enemies, collect all resources and use the buildings.\n- If you encounter an enemy, you must choose to [[action_fight]] or [[action_run]].\n- <b>[[action_run]]</b>: Costs -1 [[slot_icon_live]] Life and forfeits any resources on the field.\n- <b>[[action_fight]]</b>: Depends on your weapon, the type of enemy, and your [[slot_icon_armor]] armor. Defeated enemies may drop resources.\n\n<b>Ranking</b> \uD83C\uDFC6 is based on the number of levels [[map_icon]] completed.\n\n<b>Resources</b>:\n[[slot_icon_live]] Lives - if you have them, your journey continues. [[slot_icon_live]] {2} at the start.\n[[slot_icon_coin]] Coins - for the to spend in the shops. [[slot_icon_coin]] {3} at the start.\n[[slot_icon_armor]] Armor - reduces damage by half. [[slot_icon_armor]] {4} at the start.\n\n<b>Items:</b>\n{5}\n<b>Buildings</b>:\n- \uD83C\uDFE0 Life and armor shop. Inventory varies with the number of \uD83C\uDFE0 on the field (up to 3 shops).\n- ⛺\uFE0F Weapon shop.\n- \uD83C\uDFB0 Casino, where players can test their luck.\n\n<b>Enemies</b>:\n{6}\n\n<i>Goog Luck</i>"
+  },
+  "help_enemy": {
+    "en": "{0} - {1}, damage: -{2} [[slot_icon_live]] Life"
+  },
+  "about_info": {
+    "en": "Treasure Trip - The game was made by <b>Sergei Lazarev</b> and <b>Alexander Vanyukov</b>, thanks for your attention.\nFor contact: novuscolor@gmail.com"
+  },
+  "pref_none": {
+    "en": ""
+  },
+  "pref_mr": {
+    "en": "Mr."
+  },
+  "pref_mrs": {
+    "en": "Mrs."
+  },
+  "pref_ms": {
+    "en": "Ms."
+  },
+  "pref_miss": {
+    "en": "Miss"
+  },
+  "pref_dr": {
+    "en": "Dr."
+  },
+  "pref_sir": {
+    "en": "Sir"
+  },
+  "pref_lord": {
+    "en": "Lord"
+  },
+  "pref_lady": {
+    "en": "Lady"
+  },
+  "pref_captain": {
+    "en": "Captain"
+  },
+  "pref_general": {
+    "en": "General"
+  },
+  "pref_major": {
+    "en": "Major"
+  },
+  "pref_colonel": {
+    "en": "Colonel"
+  },
+  "pref_king": {
+    "en": "King"
+  },
+  "pref_queen": {
+    "en": "Queen"
+  },
+  "pref_prince": {
+    "en": "Prince"
+  },
+  "pref_princess": {
+    "en": "Princess"
+  },
+  "pref_master": {
+    "en": "Master"
+  },
+  "log_casino_win": {
+    "en": "casino win"
+  },
+  "log_casino_win_jackpot": {
+    "en": "casino win jackpot"
+  },
+  "log_casino_bet": {
+    "en": "casino bet"
+  },
+  "log_shop_stars": {
+    "en": "shop stars"
+  },
+  "log_shop": {
+    "en": "shop"
+  },
+  "log_message_kill": {
+    "en": "kill {0}"
+  },
+  "log_message_miss": {
+    "en": "miss"
+  },
+  "log_damage_from": {
+    "en": "damage form {0}"
+  },
+  "log_message": {
+    "en": "[[level_title]]\n{1}"
+  },
+  "log_message_item": {
+    "en": "{0} <code>{1}</code>"
+  },
+  "log_message_item_other": {
+    "en": "{0} <code>{1}</code> <i>{2}</i>"
+  },
+  "cheats_text": {
+    "en": "\uD83E\uDDDE What does my master wish?"
+  },
+  "no_action": {
+    "en": "No action..."
+  },
+  "no_action_need_fight": {
+    "en": "First you need to defeat all enemies..."
+  },
+  "no_action_not_enough_coins": {
+    "en": "Not enough coins..."
+  },
+  "username_is_empty": {
+    "en": "Error: username is empty, specify the username after the command"
+  },
+  "restart_question": {
+    "en": "<b>Treasure Trip</b> restart?\n<i>You will lose your current progress in the game.</i>"
+  },
+  "play_the_game": {
+    "en": "<b>Treasure Trip</b> start {0}..."
+  },
+  "error_no_username": {
+    "en": "To play the game, it is necessary to create a username on Telegram.\n1. Click on the three horizontal lines 'Settings' in the button left corner.\n2. From the menu options, select 'Edit' in the top left corner.\n3. Find 'Add username'.\n4. Provide a unique name."
+  },
+  "error_no_level": {
+    "en": "Error, game level is broken..."
+  },
+  "error_item": {
+    "en": "Error item id {0}"
+  },
+  "error_no_casino_bet": {
+    "en": "No bet in casino {0}..."
+  },
+  "error_no_coins_for_bet": {
+    "en": "No coins for bet {0}..."
+  },
+  "error_no_user": {
+    "en": "User {0} not found!"
+  }
+}
