@@ -50,28 +50,26 @@ def now_unix_time():
     return time.time()
 
 
-def log_stack(message, limit=5):
+def log_stack(message, limit=5, start=-2):
     stack_buffer = io.StringIO()
-
     traceback.print_stack(limit=limit, file=stack_buffer)
-
     stack_content = stack_buffer.getvalue()
-
     stack_buffer.close()
-
     stack_lines = stack_content.splitlines()
-
     if stack_lines:
-        stack_lines = stack_lines[:-2]
-
+        stack_lines = stack_lines[:-start]
     stack_content = '\n'.join(stack_lines)
-
     LIGHT_GREEN = "\033[92m"
     RESET_COLOR = "\033[0m"
-
-    full_message = f"{LIGHT_GREEN}{message}{stack_content}{RESET_COLOR}"
-
+    full_message = f"{message}{LIGHT_GREEN}{stack_content}{RESET_COLOR}"
     print(full_message)
+
+
+def log_error(message):
+    LIGHT_GREEN = "\033[91m"
+    RESET_COLOR = "\033[0m"
+    full_message = f"{convert_unix_timestamp_to_readable(now_unix_time())}| {LIGHT_GREEN}{message}{RESET_COLOR}\n"
+    log_stack(full_message, limit=5, start=-3)
 
 
 def get_string_by_utc(utc):

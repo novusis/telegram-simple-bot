@@ -13,7 +13,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 import utils
 from data.game_config import GameConfig
-from data.message_template import MessageTemplate
+from data.simple_templator import SimpleTemplator
 from models.db_invoices import Invoice
 from simple_analytics import SimpleAnalytics
 from simple_resources import SimpleResources
@@ -23,23 +23,24 @@ from utils import convert_seconds_to_hm
 import time
 
 # Initialize bot and dispatcher
+
 VERSION = '0.0.1'
-API_TOKEN = GameConfig.get_app_config('token')
+API_TOKEN = GameConfig.app('token')
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-template_engine = MessageTemplate('data/messages.json')
-simple_analytics = SimpleAnalytics(GameConfig.get_app_config('db_analytic_uri'))
-resources = SimpleResources(GameConfig.get_app_config('db_resources_uri'))
+templator = SimpleTemplator(GameConfig.app('templates_data'), 'en')
+simple_analytics = SimpleAnalytics(GameConfig.app('db_analytic_uri'))
+resources = SimpleResources(GameConfig.app('db_resources_uri'))
 
-game = SimapleGame(template_engine, lambda user: simple_analytics.set_login(user.external_id))
+game = SimapleGame(templator, lambda user: simple_analytics.set_login(user.external_id))
 top_count = 15
 wait_followers = {}
 
-START_GAME = template_engine.get('button_start_game')
-BONUSES = template_engine.get('button_bonuses')
-TOP = template_engine.get('button_top', top_count)
+START_GAME = templator.get('button_start_game')
+BONUSES = templator.get('button_bonuses')
+TOP = templator.get('button_top', top_count)
 
 
 #
@@ -47,13 +48,13 @@ TOP = template_engine.get('button_top', top_count)
 #
 
 async def draw_top(chat_id, external_id):
-    top_players = game.get_top_players()
+    top_players = game.get_top_players(top_count)
     r = ""
     if top_players:
         for i, player in enumerate(top_players, start=1):
-            name = player.full_name_limit  # обрезаем имя, если оно более 30 символов
+            name = player.name  # обрезаем имя, если оно более 30 символов
             line = f"{i}. {name}"
-            level = str(player.max_map_level)
+            level = str(player.scores)
             num_dots = 26 - len(line) - len(level)
             line = line.ljust(num_dots + len(line), '.')  # добавляем точки справа
             line += f"{level}\n"  # добавляем номер уровня в конце строки 
@@ -63,12 +64,12 @@ async def draw_top(chat_id, external_id):
 
     if external_id:
         if game.get_user(external_id):
-            buttons = [[InlineKeyboardButton(text=template_engine.get("action_start_game"), callback_data=f"action_start_game")]]
+            buttons = [[InlineKeyboardButton(text=templator.get("action_start_game"), callback_data=f"action_start_game")]]
         else:
             buttons = [[]]
-        await bot.send_message(chat_id, template_engine.get("message_top_text", top_count, r), parse_mode='html', reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        await bot.send_message(chat_id, templator.get("message_top_text", top_count, r), reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     else:
-        await bot.send_message(chat_id, template_engine.get("message_top_text", top_count, r), parse_mode='html')
+        await bot.send_message(chat_id, templator.get("message_top_text", top_count, r))
 
 
 async def start_game(message: types.Message):
@@ -76,13 +77,17 @@ async def start_game(message: types.Message):
     if user:
         await start_new_game(message.chat.id, message.from_user.id)
     else:
-        user = game.register_user(message.from_user.id, message.from_user.username, message.from_user.first_name, message.chat.id)
-        user_to_follower_id = wait_followers.pop(user.id, None)
-        if user_to_follower_id:
-            await add_follower(message.chat.id, user, user_to_follower_id)
-        reply_markup = get_shop_button_view()
-        await message.answer(template_engine.get("new_registration", user.external_id), parse_mode='html', reply_markup=reply_markup)
-        # analytics.new_registration(message.from_user.id)
+        await registration(message)
+
+
+async def registration(message):
+    user = game.register_user(message.from_user.id, message.from_user.username, message.from_user.first_name, message.chat.id)
+    user_to_follower_id = wait_followers.pop(user.id, None)
+    if user_to_follower_id:
+        await add_follower(message.chat.id, user, user_to_follower_id)
+    reply_markup = get_shop_button_view()
+    await message.answer(templator.get("new_registration", user.external_id), reply_markup=reply_markup)
+    # analytics.new_registration(message.from_user.id)
 
 
 async def start_new_game(chat_id, external_id):
@@ -92,15 +97,16 @@ async def start_new_game(chat_id, external_id):
         # if level.map_level != 1:
         #     markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="YES", callback_data=f"yes_restart"),
         #                                                     InlineKeyboardButton(text="NO", callback_data=f"no_restart")]])
-        #     await bot.send_message(chat_id, template_engine.get("restart_question"), parse_mode='html', reply_markup=markup)
+        #     await bot.send_message(chat_id, template_engine.get("restart_question"), reply_markup=markup)
         #     return
-        # await bot.send_message(chat_id, template_engine.get("play_the_game", user.full_name), parse_mode='html')
+        # await bot.send_message(chat_id, template_engine.get("play_the_game", user.name))
         # await make_game_level(chat_id, user)
         game.new_game(user)
-        await bot.send_message(chat_id, template_engine.get("play_the_game", user.username))
+        reply_markup = get_shop_button_view()
+        await bot.send_message(chat_id, templator.get("play_the_game", user.username), reply_markup=reply_markup)
         simple_analytics.set_player(user.external_id)
     else:
-        await bot.send_message(chat_id, template_engine.get("error_no_user", external_id))
+        await bot.send_message(chat_id, templator.get("error_no_user", external_id))
         return
 
 
@@ -115,15 +121,15 @@ async def set_edit_view_message(chat_id, level, text):
             level.message_id = ""
 
 
-async def show_followers(chat_id, username):
-    user = game.get_user_old_for_start(username, chat_id)
+async def show_followers(chat_id, external_id):
+    user = game.get_self_user(external_id, chat_id)
     try:
-        followers = game.followers.filter_by_field('username', user.username)
-        r = f"{template_engine.get('your_followers')}\n"
-        bonus_timeout_h = GameConfig.get_bonus_for_followers("bonus_timeout_h")
-        bonus_login_timeout_h = GameConfig.get_bonus_for_followers("bonus_last_login_timeout_h")
-        bonus_coins = GameConfig.get_bonus_for_followers("bonus_coins")
-        bonus_max_followers = GameConfig.get_bonus_for_followers("bonus_max_followers")
+        followers = game.followers.filter_by_field('user_to_follow_id', user.id)
+        r = f"{templator.get('your_followers')}\n"
+        bonus_timeout_h = GameConfig.bonus_for_followers("bonus_timeout_h")
+        bonus_login_timeout_h = GameConfig.bonus_for_followers("bonus_last_login_timeout_h")
+        bonus_coins = GameConfig.bonus_for_followers("bonus_coins")
+        bonus_max_followers = GameConfig.bonus_for_followers("bonus_max_followers")
         for follower in followers:
             f_user = game.users.get(follower.user_id)
             if f_user:
@@ -131,26 +137,26 @@ async def show_followers(chat_id, username):
                 play_today = ""
 
                 if not f_user.has_game_today():
-                    play_today = f" {template_engine.get('follower_no_played', f_user.username)} "
+                    play_today = f" {templator.get('follower_no_played', f_user.username)} "
 
                 if timer > 0:
-                    r += f"<b>{f_user.full_name}</b> - {play_today}{template_engine.get('next_bonus_in', convert_seconds_to_hm(timer))}\n"
+                    r += f"<b>{f_user.name}</b> - {play_today}{templator.get('next_bonus_in', convert_seconds_to_hm(timer))}\n"
                 else:
                     if play_today == "":
-                        r += f"<b>{f_user.full_name}</b> - {template_engine.get('bonus_is_ready', bonus_coins)}\n"
+                        r += f"<b>{f_user.name}</b> - {templator.get('bonus_is_ready', bonus_coins)}\n"
                     else:
-                        r += f"<b>{f_user.full_name}</b> - {play_today}\n"
+                        r += f"<b>{f_user.name}</b> - {play_today}\n"
 
         if len(followers) == 0:
-            r = template_engine.get('no_followers', username, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers)
-        await bot.send_message(chat_id, r, parse_mode='html')
+            r = templator.get('no_followers', user.name, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers)
+        await bot.send_message(chat_id, r)
     except Exception as e:
         traceback.print_exc()
         utils.log_error(f".show_followers error: <{e}>")
 
 
 async def make_channel_post(chat_id, channel_message_id):
-    channel_chat_id = GameConfig.get_app_config('content_channel_chat_id')
+    channel_chat_id = GameConfig.app('content_channel_chat_id')
     if channel_chat_id == 0 or channel_message_id == 0:
         return
     await bot.forward_message(chat_id=chat_id, from_chat_id=channel_chat_id, message_id=channel_message_id)
@@ -160,7 +166,7 @@ async def make_channel_post(chat_id, channel_message_id):
 # Bot Actions
 #
 
-@dp.message(Command('sendphoto'))
+@dp.message(Command('sendcontent'))
 async def send_photo(message: Message):
     print(f".send_photo > message <{message}>")
     await resources.post_resource(bot, message.chat.id, resources.AUDIO, 'https://storage.googleapis.com/treasure-trip/media/music_first_them.mp3')
@@ -174,18 +180,6 @@ async def send_photo(message: Message):
     # print(f".send_photo > answer <{answer.photo[0].file_id}>")
 
 
-@dp.message(Command('restart'))
-async def restart(message: types.Message):
-    username = message.from_user.username
-    user = game.get_user_old(username)
-
-    if user:
-        print(f".add_follower_command > user <{user.username}> is restarted>")
-        await start_new_game(message.chat.id, username)
-    else:
-        await bot.send_message(message.chat.id, template_engine.get("error_no_user", username), parse_mode='html')
-
-
 @dp.message(Command('add_follower'))
 async def add_follower_command(message: types.Message):
     print(f".add_follower > message <{message.text}>")
@@ -194,16 +188,16 @@ async def add_follower_command(message: types.Message):
     if user:
         split = message.text.strip().split(" ", 1)
         if len(split) == 1 or split[1] == "":
-            await bot.send_message(message.chat.id, template_engine.get("username_is_empty"), parse_mode='html')
+            await bot.send_message(message.chat.id, templator.get("username_is_empty"))
             return
         follower_username = split[1]
-        user_to_follower = game.get_user_by_external_id(follower_username)
+        user_to_follower = game.get_user_by_username(follower_username)
         if user_to_follower:
             await add_follower(message.chat.id, user, user_to_follower.id)
         else:
-            utils.log_error(f".add_follower_command error: no user for follow <{follower_username}>")
+            utils.log_error(f"add_follower_command error: no user for follow <{follower_username}>")
     else:
-        await bot.send_message(message.chat.id, template_engine.get("error_no_user", username), parse_mode='html')
+        await bot.send_message(message.chat.id, templator.get("error_no_user", username))
         return
 
 
@@ -211,38 +205,35 @@ async def add_follower(chat_id, user, user_to_follower_id, double=True):
     user_to_follow = game.users.get(user_to_follower_id)
     if user_to_follow:
         if user.id == user_to_follow.user_to_follower_id:
-            await bot.send_message(chat_id, template_engine.get("follower_himself_error", user_to_follow.username), parse_mode='html')
+            await bot.send_message(chat_id, templator.get("follower_himself_error", user_to_follow.username))
             return True
         if game.add_user_to_followers(user, user_to_follow):
-            await bot.send_message(chat_id, template_engine.get("added_follower", user_to_follow.full_name), parse_mode='html')
+            await bot.send_message(chat_id, templator.get("added_follower", user_to_follow.name))
         else:
-            await bot.send_message(chat_id, template_engine.get("user_exists_followers", user_to_follow.full_name), parse_mode='html')
+            await bot.send_message(chat_id, templator.get("user_exists_followers", user_to_follow.name))
         if double:
             if game.add_user_to_followers(user_to_follow, user):
-                await bot.send_message(user_to_follow.chat_id, template_engine.get("added_follower", user.full_name), parse_mode='html')
+                await bot.send_message(user_to_follow.chat_id, templator.get("added_follower", user.name))
     else:
-        print(f".add_follower > {template_engine.get('error_no_user', user_to_follower_id)}")
-        # await bot.send_message(chat_id, template_engine.get("error_no_user", follower_username), parse_mode='html')
+        print(f".add_follower > {templator.get('error_no_user', user_to_follower_id)}")
+        # await bot.send_message(chat_id, template_engine.get("error_no_user", follower_username))
         pass
     return False
 
 
 async def buttons_keyboard_action(message: types.Message):
     try:
-        if message.from_user.username is None:
-            await message.answer(template_engine.get("error_no_username"), parse_mode='html')
-            return
         result = True
         if message.text in [START_GAME]:
             await start_game(message)
         elif message.text == BONUSES:
-            await show_followers(message.chat.id, message.from_user.username)
-            markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text=template_engine.get("open_your_invite_url"), url=template_engine.get("bot_invite_url", message.from_user.username))]])
-            bonus_timeout_h = GameConfig.get_bonus_for_followers("bonus_timeout_h")
-            bonus_login_timeout_h = GameConfig.get_bonus_for_followers("bonus_last_login_timeout_h")
-            bonus_coins = GameConfig.get_bonus_for_followers("bonus_coins")
-            bonus_max_followers = GameConfig.get_bonus_for_followers("bonus_max_followers")
-            await bot.send_message(message.chat.id, template_engine.get('bonus_for_followers_invite', message.from_user.username, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers),
+            await show_followers(message.chat.id, message.from_user.id)
+            markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text=templator.get("open_your_invite_url"), url=templator.get("bot_invite_url", message.from_user.username))]])
+            bonus_timeout_h = GameConfig.bonus_for_followers("bonus_timeout_h")
+            bonus_login_timeout_h = GameConfig.bonus_for_followers("bonus_last_login_timeout_h")
+            bonus_coins = GameConfig.bonus_for_followers("bonus_coins")
+            bonus_max_followers = GameConfig.bonus_for_followers("bonus_max_followers")
+            await bot.send_message(message.chat.id, templator.get('bonus_for_followers_invite', message.from_user.username, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers),
                                    parse_mode='html', reply_markup=markup)
         elif message.text == TOP:
             await draw_top(message.chat.id, message.from_user.id)
@@ -266,40 +257,33 @@ async def start(message: types.Message, command: CommandObject):
             referral_code = command.args[2:]
 
     if referral_code:
-        user = game.get_user(message.from_user.id)
+        user = game.get_self_user(message.from_user.id, message.chat.id)
         if user:
             if await add_follower(message.chat.id, user, referral_code):
                 return
         else:
             wait_followers[message.from_user.id] = referral_code
 
-    print(f'# > start chat.id <{message.chat.id}> user <{message.from_user.id}|{message.from_user.username}> referral_code: <{referral_code}>')
+    # print(f'# > start chat.id <{message.chat.id}> user <{message.from_user.id}|{message.from_user.username}> referral_code: <{referral_code}>')
     sys.stdout.flush()
 
     try:
         builder = ReplyKeyboardBuilder()
-        bt_start_game = types.KeyboardButton(text=START_GAME)
 
-        # channel_message_id = 0
-        # settings = GameConfig.get_game_settings()
-        # if 'channel_start_message_id' in settings:
-        #     channel_message_id = int(settings['channel_start_message_id'])
-        # await make_channel_post(message.chat.id, channel_message_id)
-        await bot.send_message(chat_id=message.chat.id, text=f'<code><b>beta v{VERSION}</b></code>', parse_mode='html')
-        # if 'start_music' in settings:
-        #     await resources.post_resource(bot, message.chat.id, resources.AUDIO, settings['start_music'], template_engine.get("main_music"), {'title': 'Main Song', 'performer': 'Treasure Trip'})
+        bt_start_game = types.KeyboardButton(text=START_GAME)
+        bt_bonuses = KeyboardButton(text=BONUSES)
+        bt_top = KeyboardButton(text=TOP)
+
+        await bot.send_message(chat_id=message.chat.id, text=f'<code><b>beta v{VERSION}</b></code>')
+        builder.add(bt_start_game, bt_bonuses, bt_top)
 
         user = game.get_self_user(message.from_user.id, message.chat.id)
         if user:
-            bt_top = KeyboardButton(text=TOP)
-            bt_bonuses = KeyboardButton(text=BONUSES)
-            builder.add(bt_start_game, bt_bonuses, bt_top)
-            await message.answer(template_engine.get(f'start_welcome_back', user.full_name), parse_mode='html', reply_markup=builder.as_markup(resize_keyboard=True))
+            await message.answer(templator.get(f'start_welcome_back', user.name), reply_markup=builder.as_markup(resize_keyboard=True))
             simple_analytics.set_player(message.from_user.id)
         else:
-            bt_top = KeyboardButton(text=TOP)
-            builder.add(bt_start_game, bt_top)
-            await message.answer(template_engine.get('start_first', message.from_user.username), parse_mode='html', reply_markup=builder.as_markup(resize_keyboard=True))
+            await registration(message)
+            await message.answer(templator.get('start_first', message.from_user.username), reply_markup=builder.as_markup(resize_keyboard=True))
     except Exception as e:
         traceback.print_exc()
         print(f"\033[91m.start > ERROR <{e}>\033[0m")
@@ -311,25 +295,25 @@ async def delete(message: types.Message):
     if user:
         markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text='Yes', callback_data=f'delete_user_yes'),
                                                               types.InlineKeyboardButton(text='No', callback_data=f'delete_user_no')]])
-        await message.answer(f' <b>Treasure Trip</b> {user.full_name} do you wanna remove user? say "yes" or "no"!', parse_mode='html', reply_markup=markup)
+        await message.answer(templator.get("delete_user", user.get_username_or_name()), reply_markup=markup)
     else:
-        await message.answer(f' <b>Treasure Trip</b> @{message.from_user.username} no user!', parse_mode='html')
+        await message.answer(templator.get("error_no_user", message.from_user.username))
 
 
 @dp.message(Command('show_followers'))
 async def show_followers_command(message: types.Message):
-    await show_followers(message.chat.id, message.from_user.username)
+    await show_followers(message.chat.id, message.from_user.id)
 
 
 @dp.message(Command('author'))
 async def author_command(message: types.Message):
     markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Sponsor Co-life", url='https://co-lifeprofit.tilda.ws/')]])
-    await message.reply(template_engine.get("about_info"), parse_mode='html', reply_markup=markup)
+    await message.reply(templator.get("about_info"), reply_markup=markup)
 
 
 # @dp.message(Command('help'))
 # async def help_command(message: types.Message):
-#     # await bot.send_message(message.chat.id, template_engine.get("help_text"), parse_mode='html')
+#     # await bot.send_message(message.chat.id, template_engine.get("help_text"))
 #     # {0} levels in location 
 #     # {1} enemies 
 #     # {2} start lives 
@@ -345,17 +329,17 @@ async def author_command(message: types.Message):
 #     enemies_full = [f"{template_engine.get('help_enemy', template_engine.get(f'slot_icon_{enemy}'), GameConfig.get_enemies_config()[enemy].get('name', ''), GameConfig.get_enemies_config()[enemy].get('damage', 1))}\n"
 #                     for enemy in GameConfig.get_enemies_config()]
 # 
-#     await bot.send_message(message.chat.id, template_engine.get("help_text2", difficulty_step, "".join(enemies), start_lives, start_coins, start_armor, "".join(items), "".join(enemies_full)), parse_mode='html')
+#     await bot.send_message(message.chat.id, template_engine.get("help_text2", difficulty_step, "".join(enemies), start_lives, start_coins, start_armor, "".join(items), "".join(enemies_full)))
 
 
 @dp.message(Command('paysupport'))
 async def delete_spam(message: Message):
-    await bot.send_message(message.chat.id, template_engine.get('paysupport'))
+    await bot.send_message(message.chat.id, templator.get('paysupport'))
 
 
 def user_is_admin(username):
-    user = game.get_user_old(username)
-    return user and user.username in GameConfig.get_app_config('admins')
+    user = game.get_user(username)
+    return user and user.username in GameConfig.app('admins')
 
 
 @dp.message(Command('online'))
@@ -366,9 +350,9 @@ async def admin_online(message: Message):
         online = f"Current online: {len(usernames)}"
         for username in usernames:
             user = game.cache_users[username].get_first()
-            online += f"\n{user.full_name} <{username}> online: {game.cache_users[username].get_online_time()}"
-        
-        online += f"\nWaiting user action at {GameConfig.get_app_config('user_online_timeout_seconds')} seconds..."
+            online += f"\n{user.name} <{username}> online: {game.cache_users[username].get_online_time()}"
+
+        online += f"\nWaiting user action at {GameConfig.app('user_online_timeout_seconds')} seconds..."
         await bot.send_message(chat_id=message.chat.id, text=online, parse_mode=None)
 
 
@@ -377,10 +361,10 @@ async def admin_cheats(message: Message):
     username = message.from_user.username
     if user_is_admin(username):
         mb = InlineKeyboardBuilder()
-        mb.button(text=template_engine.get("slot_icon_live"), callback_data=f"cheat_lives")
-        mb.button(text=template_engine.get("slot_icon_coin"), callback_data=f"cheat_coins")
-        mb.button(text=template_engine.get("slot_icon_armor"), callback_data=f"cheat_armor")
-        await bot.send_message(message.chat.id, template_engine.get('cheats_text'), reply_markup=mb.as_markup())
+        mb.button(text=templator.get("slot_icon_live"), callback_data=f"cheat_lives")
+        mb.button(text=templator.get("slot_icon_coin"), callback_data=f"cheat_coins")
+        mb.button(text=templator.get("slot_icon_armor"), callback_data=f"cheat_armor")
+        await bot.send_message(message.chat.id, templator.get('cheats_text'), reply_markup=mb.as_markup())
 
 
 @dp.message(Command('analytic'))
@@ -398,7 +382,7 @@ async def text_message_handler(message: types.Message):
         if await buttons_keyboard_action(message):
             return
         if message.text.lower() == 'hello':
-            await message.reply(f'Hello {message.from_user.username}, welcome to the <b>Treasure Trip</b> game!', parse_mode='html')
+            await message.reply(f'Hello {message.from_user.username}, welcome to the <b>Treasure Trip</b> game!')
         await bot.delete_message(message.chat.id, message.message_id)
 
     except Exception as e:
@@ -408,14 +392,10 @@ async def text_message_handler(message: types.Message):
 
 @dp.channel_post()
 async def channel_message(message: types.MessageOriginChannel):
-    # print(f".channel_message > message.type <{message.chat.type}>")
-    # print(f".channel_message > message.title <{message.chat.title}>")
-    # print(f".channel_message > message.text <{message.text}>")
-
     channel_chat_id = message.chat.id
     channel_message_id = message.message_id
 
-    if message.chat.id == GameConfig.get_app_config('news_channel_chat_id'):
+    if message.chat.id == GameConfig.app('news_channel_chat_id'):
         all_users = game.users.all()
         print(f".channel_message > news! <{message.text}>")
         for user in all_users:
@@ -429,31 +409,26 @@ async def channel_message(message: types.MessageOriginChannel):
             print(f".channel_message > ready to <{count}> messages")
         return
 
-    if message.chat.id != GameConfig.get_app_config('content_channel_chat_id'):
+    if message.chat.id != GameConfig.app('content_channel_chat_id'):
         return
 
     all_users = game.users.all()
     for user in all_users:
-        if not user.bot and user.username in GameConfig.get_app_config('admins'):
+        if not user.bot and user.username in GameConfig.app('admins'):
             chat_id = user.chat_id
             print(f".channel_message > channel_message_id <{channel_message_id}>")
             await bot.forward_message(chat_id=chat_id, from_chat_id=channel_chat_id, message_id=channel_message_id)
-            # file = types.InputFile('CgACAgIAAyEFAASBXrclAAMUZmwEpxbVYWiyEirVukV_93vfE20AAgRLAAIVR1hL3Y61wYgGBh41BA')
-            await bot.send_message(chat_id=chat_id, text=f"<code>        \"channel_message_id\": {channel_message_id},</code>", parse_mode='html')
-            # if message.photo:
-            #     file_id = message.photo[0].file_id
-            #     print(f".channel_message > file_id <{file_id}>")
-            #     await bot.send_photo(chat_id=chat_id, photo=file_id)
+            await bot.send_message(chat_id=chat_id, text=f"<code>        \"channel_message_id\": {channel_message_id},</code>")
 
 
 async def send_invoice(callback, invoice_id, user):
     shop_item = game.get_stars_shop_item_by_invoice(invoice_id)
     if shop_item:
-        title = template_engine.get("want_buy_for_stars", shop_item.get_goods_view(template_engine.get))
+        title = templator.get("want_buy_for_stars", shop_item.get_goods_view(templator.get))
         prices = [LabeledPrice(label=title, amount=shop_item.price)]
         print(f".send_invoice > send invoice <{invoice_id}> item_id {shop_item.item_id}...")
         await bot.send_invoice(callback.message.chat.id, title=title,
-                               description=template_engine.get(f"shop_item_description_{shop_item.item_id}", user.full_name),
+                               description=templator.get(f"shop_item_description", user.name),
                                payload=f"buy_{invoice_id}",
                                currency="XTR",
                                prices=prices,
@@ -498,7 +473,7 @@ async def success_payment(message: Message):
 @dp.callback_query(lambda callback: True)
 async def callback_message(callback: types.CallbackQuery):
     action = callback.data.split('|')[0]
-    username = callback.from_user.username
+    user_name = "@" + callback.from_user.username if callback.from_user.username != "" else callback.from_user.first_name
     chat_id = callback.message.chat.id
     message_id = callback.message.message_id
     external_id = callback.from_user.id
@@ -506,11 +481,11 @@ async def callback_message(callback: types.CallbackQuery):
     if action == "delete_user_yes":
         game.delete_user(external_id)
         await bot.delete_message(chat_id, int(message_id))
-        await bot.send_message(chat_id, template_engine.get("delete_user_complete", username), parse_mode='html')
+        await bot.send_message(chat_id, templator.get("delete_user_complete", user_name))
         return
     elif action == "delete_user_no":
         await bot.delete_message(chat_id, int(message_id))
-        await bot.send_message(chat_id, template_engine.get("delete_user_stop", username), parse_mode='html')
+        await bot.send_message(chat_id, templator.get("delete_user_stop", user_name))
         return
 
     if action == 'shop_item_star':
@@ -524,19 +499,19 @@ async def callback_message(callback: types.CallbackQuery):
 
     user = game.get_user(external_id)
     if not user:
-        print(f".callback_message > Error user not found <{username}>!")
-        await start_new_game(chat_id, username)
+        print(f".callback_message > Error user not found <{user_name}>!")
+        await start_new_game(chat_id, external_id)
         return
 
     if action == "collect_bonus":
         bonus = game.collect_bonus(user)
         # TODO : 
         print(f".callback_message bonus <{bonus}>")
-        await bot.edit_message_text(callback.message.html_text, chat_id, message_id, parse_mode='html')
+        await bot.edit_message_text(callback.message.html_text, chat_id, message_id)
         return
-    
+
     print("NO ACTION")
-    await bot.answer_callback_query(callback.id, template_engine.get("no_action"))
+    await bot.answer_callback_query(callback.id, templator.get("no_action"))
 
 
 def get_shop_button_view():
@@ -545,7 +520,7 @@ def get_shop_button_view():
     for shop in shop_stars_data:
         # builder.button(text="20 ⭐️", callback_data=f'add_balance|{user.username}', pay=True)
         builder.row(
-            InlineKeyboardButton(text=template_engine.get("action_stars_shop_item", shop.get_goods_view(template_engine.get), str(shop.price)), callback_data=f'shop_item_star|{shop.item_id}', pay=True))
+            InlineKeyboardButton(text=templator.get("action_stars_shop_item", shop.get_goods_view(templator.get), str(shop.price)), callback_data=f'shop_item_star|{shop.item_id}', pay=True))
 
     return builder.as_markup()
 
@@ -567,7 +542,7 @@ async def answer_other(message: Message):
 async def online_check():
     # print(f".online_check > start online_check")
     while True:
-        await asyncio.sleep(GameConfig.get_app_config('online_check_timeout_seconds'))
+        await asyncio.sleep(GameConfig.app('online_check_timeout_seconds'))
         # print(f".online_check > 1 online <{game.get_online()}>")
         closed_sessions = game.check_online()
         for telegram_id in closed_sessions.keys():

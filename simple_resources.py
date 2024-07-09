@@ -1,7 +1,7 @@
-from database import Database, DBModel, ModelManager
+from models.database import Database, DBModel, ModelManager
 
 
-class TelegramResources:
+class SimpleResources:
     PHOTO = "photo"
     VIDEO = "video"
     ANIMATION = "animation"
@@ -13,15 +13,13 @@ class TelegramResources:
 
     class TelegramFileData(DBModel):
         Fields = {
-            "chat_id": ["INTEGER", 0],
             "url": ["TEXT", 0],
             "media_type": ["TEXT", 0],
             "file_id": ["TEXT", ""],
         }
 
-        def __init__(self, id, chat_id: int, url, media_type, file_id):
+        def __init__(self, id, url, media_type, file_id):
             self.id = id
-            self.chat_id = chat_id
             self.url = url
             self.media_type = media_type
             self.file_id = file_id
@@ -34,11 +32,11 @@ class TelegramResources:
         # for r in all:
         #     print(f"TelegramResources.__init__ > r <{r}>")
 
-    async def post_resource(self, bot, chat_id: int, media_type, url, caption=None, settings=None):
+    async def post_resource(self, bot, chat_id, media_type, url, caption=None, settings=None):
         """
         Метод post_resource используется для отправки различных типов медиа-содержимого в чат Телеграмм. 
         :param bot: Экземпляр бота, используемого для отправки медиа-содержимого.
-        :param chat_id: (str) идентификатор чата, в который отправляется содержимое.
+        :param chat_id: Chat id.
         :param media_type: (str) тип медиа-содержимого, которые нужно отправить. Должен быть одним из следующих значений:
             PHOTO - для фотографий (обычно .jpg или .png)
             VIDEO - для видеофайлов (обычно .mp4)
@@ -60,10 +58,9 @@ class TelegramResources:
                 return
             except Exception as e:
                 print(f"TelegramResources.post_resource > error <{e}>")
-        await self.post_url(bot, chat_id, self.TelegramFileData(None, chat_id, url, media_type, ""), caption, settings)
+        await self.post_url(bot, chat_id, self.TelegramFileData(None, url, media_type, ""), caption, settings)
 
     async def post_file_id(self, bot, chat_id, res, caption, settings):
-        print(f"TelegramResources.post_file_id > res <{res}>")
         settings = settings or {}
         if res.media_type == self.PHOTO:
             await bot.send_photo(chat_id=chat_id, photo=res.file_id, caption=caption)
@@ -74,8 +71,6 @@ class TelegramResources:
         elif res.media_type == self.AUDIO:
             title = settings['title'] if 'title' in settings else None
             performer = settings['performer'] if 'performer' in settings else None
-            print(f"TelegramResources.post_file_id > title <{title}>")
-            print(f"TelegramResources.post_file_id > performer <{performer}>")
             await bot.send_audio(chat_id=chat_id, audio=res.file_id, caption=caption, title=title, performer=performer)
         elif res.media_type == self.DOCUMENT:
             await bot.send_document(chat_id=chat_id, document=res.file_id, caption=caption)
@@ -99,8 +94,6 @@ class TelegramResources:
         elif res.media_type == self.AUDIO:
             title = settings['title'] if 'title' in settings else None
             performer = settings['performer'] if 'performer' in settings else None
-            print(f"TelegramResources.post_file_id > title <{title}>")
-            print(f"TelegramResources.post_file_id > performer <{performer}>")
             answer = await bot.send_audio(chat_id=chat_id, audio=res.url, caption=caption, title=title, performer=performer)
         elif res.media_type == self.DOCUMENT:
             answer = await bot.send_document(chat_id=chat_id, document=res.url, caption=caption)

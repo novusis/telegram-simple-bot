@@ -1,0 +1,61 @@
+{
+  "stars_shop": [
+    {
+      "shop_item_id": "shop_item_id_1",
+      "enable": true,
+      "shop_types": [
+        "game_shop"
+      ],
+      "items": [
+        {
+          "item_id": "coin",
+          "count": 25
+        }
+      ],
+      "price": 39,
+      "test_price": 1
+    },
+    {
+      "shop_item_id": "shop_item_id_2",
+      "enable": true,
+      "shop_types": [
+        "game_shop"
+      ],
+      "items": [
+        {
+          "item_id": "armor",
+          "count": 5
+        },
+        {
+          "item_id": "coin",
+          "count": 30
+        }
+      ],
+      "price": 49,
+      "test_price": 2
+    },
+    {
+      "shop_item_id": "shop_item_id_3",
+      "enable": true,
+      "shop_types": [
+        "game_shop"
+      ],
+      "items": [
+        {
+          "item_id": "live",
+          "count": 10
+        },
+        {
+          "item_id": "armor",
+          "count": 7
+        },
+        {
+          "item_id": "coin",
+          "count": 40
+        }
+      ],
+      "price": 69,
+      "test_price": 3
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
 import utils
-from database import Database, DBModel, ModelManager
+from models.database import Database, DBModel, ModelManager
 
 
 class AnalyticsPlayers(DBModel):
@@ -57,7 +57,7 @@ class AnalyticsSessions(DBModel):
         self.session_length = session_length
 
 
-class GameAnalytics:
+class SimpleAnalytics:
     def __init__(self, db_name):
         self.db = Database(db_name)
         # self.db.delete_table('players')
@@ -110,28 +110,23 @@ class GameAnalytics:
 
     def set_player(self, player_id, date=None):
         players = self.players.filter_by_field('player_id', player_id)
-        print(f"GameAnalytics.set_player > len(players) <{len(players)}>")
         if len(players) > 0:
             return
         if date is None:
             date = utils.get_string_by_utc(datetime.utcnow())
-        print(f"[{date}] GameAnalytics.set_player > player_id <{player_id}>")
         self.players.set(AnalyticsPlayers(None, player_id, date))
 
     def set_login(self, player_id, date=None):
         if date is None:
             date = utils.get_string_by_utc(datetime.utcnow())
-        print(f"[{date}] GameAnalytics.set_login > player_id <{player_id}>")
         self.logins.set(AnalyticsLogins(None, player_id, date))
 
     def set_payments(self, player_id, amount, date=None):
         if date is None:
             date = utils.get_string_by_utc(datetime.utcnow())
-        print(f"[{date}] GameAnalytics.set_payments > player_id <{player_id}>")
         self.payments.set(AnalyticsPayments(None, player_id, amount, date))
 
     def set_session(self, player_id, session_length):
-        print(f"GameAnalytics.set_session > player_id <{player_id}> session_length: {utils.convert_seconds_to_hms(session_length)}")
         self.sessions.set(AnalyticsSessions(None, player_id, session_length))
 
     def get_total_players(self):

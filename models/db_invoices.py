@@ -1,34 +1,25 @@
-from database import DBModel
+from models.database import DBModel
 
 
-class User(DBModel):
-    MAX_NAME_LENGTH = 20
-    Fields = {
-        "external_id": ["TEXT", ""],
-        "username": ["TEXT", ""],
-        "chat_id": ["INTEGER", 0],
-        "name": ["TEXT", ""],
-        "scores": ["INTEGER", 0],
-    }
+class Invoice(DBModel):
+    STARTED = "started"
+    SENT = "SENT"
+    PRE_CHECKOUT = "pre_checkout"
+    SUCCESS = "success"
+    REFUND = "refund"
 
-    def __init__(self, id, external_id, username, chat_id, name, scores):
-        self.id = id
-        self.external_id = external_id
-        self.username = username
-        self.chat_id = chat_id
-        self.name = name
-        self.scores = scores
-
-
-class UserFollower(DBModel):
     Fields = {
         "user_id": ["INTEGER", 0],
-        "username": ["TEXT", ""],
-        "took_bonus_time": ["INTEGER", ""]
+        "shop_item_id": ["TEXT", ""],
+        "invoice_status": ["TEXT", ""],
+        "charge_id": ["TEXT", ""],
+        "shop_type": ["TEXT", ""],
     }
 
-    def __init__(self, id, user_id, username, took_bonus_time):
+    def __init__(self, id, user_id, shop_item_id, invoice_status, charge_id, shop_type):
         self.id = id
         self.user_id = user_id
-        self.username = username
-        self.took_bonus_time = int(took_bonus_time)
+        self.shop_item_id = shop_item_id
+        self.invoice_status = invoice_status
+        self.charge_id = charge_id
+        self.shop_type = shop_type
