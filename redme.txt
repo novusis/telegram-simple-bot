@@ -1,12 +1,14 @@
-деплой
+#Простой шаблон для телеграм бота
+#Деплой описан в Makefile!
+
 #создание volume:
-docker volume create ttdb
-
-запуск:
-docker run -d -p 8080:8080 -v ttdb:/app/db novusis/treasure-trip:v0.4
-
-разворачивание на бекенде:
-docker run -v ttdb:/app/db -p80:8080 -d novusis/treasure-trip:v0.4
+#docker volume create ttdb
+make create_volume
 
 создание бекапа:
-docker run --rm -v your-volume-name:/from -v $(pwd):/to ubuntu tar cvf /to/backup.tar /from
+#docker run --rm -v your-volume-name:/from -v $(pwd):/to ubuntu tar cvf /to/backup.tar /from
+make build
+
+#запуск:
+#docker run -d -p 8080:8080 -v ttdb:/app/db novusis/treasure-trip:v0.4
+make run
