@@ -1,0 +1,23 @@
+{
+  "application": {
+    "admins": [
+      "novusis"
+    ],
+    "token": "YOUR_TELEGRAM_TOKEN",
+    "app_url": "YOUR_WEB_APP_URL",
+    "templates_data": "data/templates_data.json",
+    "db_uri": "db/application.db",
+    "db_resources_uri": "db/resources.db",
+    "db_analytic_uri": "db/analytic.db",
+    "user_online_timeout_seconds": 120,
+    "online_check_timeout_seconds": 30,
+    "content_channel_chat_id": 0,
+    "news_channel_chat_id": 0
+  },
+  "bonus_for_followers": {
+    "bonus_max_followers": 5,
+    "bonus_coins": 3,
+    "bonus_timeout_h": 6,
+    "bonus_last_login_timeout_h": 24
+  }
+}

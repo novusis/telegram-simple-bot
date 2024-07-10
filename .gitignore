@@ -1,6 +1,9 @@
-# data_base
+# application
 /db/
+/data/app_config_dev.json
+/data/app_config_prod.json
 
+# phyton
 __pycache__/
 *.pyc
 *.pyo
