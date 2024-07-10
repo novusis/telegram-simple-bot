@@ -204,7 +204,7 @@ async def add_follower_command(message: types.Message):
 async def add_follower(chat_id, user, user_to_follower_id, double=True):
     user_to_follow = game.users.get(user_to_follower_id)
     if user_to_follow:
-        if user.id == user_to_follow.user_to_follower_id:
+        if user.id == user_to_follow.id:
             await bot.send_message(chat_id, templator.get("follower_himself_error", user_to_follow.username))
             return True
         if game.add_user_to_followers(user, user_to_follow):
