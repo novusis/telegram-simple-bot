@@ -3,11 +3,13 @@ import signal
 import sys
 import traceback
 import asyncio
+from secrets import token_hex
+
 from aiogram import F
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, KeyboardButton, LabeledPrice, PreCheckoutQuery, BufferedInputFile
+from aiogram.enums import ParseMode, InlineQueryResultType
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, KeyboardButton, LabeledPrice, PreCheckoutQuery, BufferedInputFile, InlineQueryResultArticle, InlineQueryResultGame, InlineQueryResultPhoto
 from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
@@ -24,7 +26,7 @@ import time
 
 # Initialize bot and dispatcher
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 API_TOKEN = GameConfig.app('token')
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -103,7 +105,7 @@ async def start_new_game(chat_id, external_id):
         # await make_game_level(chat_id, user)
         game.new_game(user)
         reply_markup = get_shop_button_view()
-        await bot.send_message(chat_id, templator.get("play_the_game", user.username), reply_markup=reply_markup)
+        await bot.send_message(chat_id, templator.get("play_the_game", user.username, user.coins), reply_markup=reply_markup)
         simple_analytics.set_player(user.external_id)
     else:
         await bot.send_message(chat_id, templator.get("error_no_user", external_id))
@@ -248,7 +250,6 @@ async def buttons_keyboard_action(message: types.Message):
 # BOT API
 #
 
-
 @dp.message(CommandStart())
 async def start(message: types.Message, command: CommandObject):
     referral_code = None
@@ -284,6 +285,7 @@ async def start(message: types.Message, command: CommandObject):
         else:
             await registration(message)
             await message.answer(templator.get('start_first', message.from_user.username), reply_markup=builder.as_markup(resize_keyboard=True))
+        await bot.send_game(message.chat.id, 'stc')
     except Exception as e:
         traceback.print_exc()
         print(f"\033[91m.start > ERROR <{e}>\033[0m")
@@ -338,7 +340,7 @@ async def delete_spam(message: Message):
 
 
 def user_is_admin(username):
-    user = game.get_user(username)
+    user = game.get_user_by_username(username)
     return user and user.username in GameConfig.app('admins')
 
 
@@ -378,6 +380,7 @@ async def admin_analytic(message: Message):
 
 @dp.message(F.text)
 async def text_message_handler(message: types.Message):
+    print(f".text_message_handler message <{message}>")
     try:
         if await buttons_keyboard_action(message):
             return
@@ -404,10 +407,12 @@ async def channel_message(message: types.MessageOriginChannel):
             if not user.bot:
                 await bot.forward_message(chat_id=chat_id, from_chat_id=channel_chat_id, message_id=channel_message_id)
                 count += 1
-                if count % 50 == 0:
+                if count % 45 == 0:
                     await asyncio.sleep(10)
             print(f".channel_message > ready to <{count}> messages")
         return
+
+    # print(f".channel_message message.chat.id <{message.chat.id}>")
 
     if message.chat.id != GameConfig.app('content_channel_chat_id'):
         return
@@ -416,7 +421,6 @@ async def channel_message(message: types.MessageOriginChannel):
     for user in all_users:
         if not user.bot and user.username in GameConfig.app('admins'):
             chat_id = user.chat_id
-            print(f".channel_message > channel_message_id <{channel_message_id}>")
             await bot.forward_message(chat_id=chat_id, from_chat_id=channel_chat_id, message_id=channel_message_id)
             await bot.send_message(chat_id=chat_id, text=f"<code>        \"channel_message_id\": {channel_message_id},</code>")
 
@@ -426,7 +430,6 @@ async def send_invoice(callback, invoice_id, user):
     if shop_item:
         title = templator.get("want_buy_for_stars", shop_item.get_goods_view(templator.get))
         prices = [LabeledPrice(label=title, amount=shop_item.price)]
-        print(f".send_invoice > send invoice <{invoice_id}> item_id {shop_item.item_id}...")
         await bot.send_invoice(callback.message.chat.id, title=title,
                                description=templator.get(f"shop_item_description", user.name),
                                payload=f"buy_{invoice_id}",
@@ -437,6 +440,8 @@ async def send_invoice(callback, invoice_id, user):
                                request_timeout=30)
         game.set_invoice_status(invoice_id, Invoice.SENT)
         print(f".send_invoice > sent complete <{invoice_id}> item_id {shop_item.item_id}")
+    else:
+        utils.log_error(f".send_invoice error: no shop item by invoice_id <{invoice_id}>")
 
 
 async def process_pre_checkout(pre_checkout_query: PreCheckoutQuery):
@@ -458,7 +463,10 @@ async def success_payment(message: Message):
         print(f".success_payment > invoice_id <{invoice_id}>")
         shop_item = game.complete_invoice(invoice_id, message.successful_payment.telegram_payment_charge_id)
         simple_analytics.set_payments(message.from_user.id, message.successful_payment.total_amount)
-        # user = game.get_user(message.from_user.id)
+        if game.apply_invoice_goods(invoice_id, shop_item):
+            user = game.get_user(message.from_user.id)
+            print(f".success_payment user <{user.coins}>")
+            await bot.send_message(message.chat.id, templator.get("show_user_coins", user.name, user.coins))
         # await make_game_level(message.chat.id, user)
         # level = game.get_level(user)
         # invoice_shop_type = game.invoices.get(invoice_id).shop_type
@@ -470,8 +478,19 @@ async def success_payment(message: Message):
         #     await open_slot_machine(message.chat.id, level, level.message_id, user)
 
 
+@dp.inline_query(lambda callback: True)
+async def inline_query(query: types.InlineQuery):
+    game.register_user(query.from_user.id, query.from_user.username, query.from_user.first_name, 0)
+    await bot.answer_inline_query(inline_query_id=query.id, results=[InlineQueryResultGame(type=InlineQueryResultType.GAME, id=token_hex(2), game_short_name='stc')])
+
+
 @dp.callback_query(lambda callback: True)
 async def callback_message(callback: types.CallbackQuery):
+    # callback.game_short_name
+    if callback.game_short_name:
+        await callback.answer(callback.game_short_name, url=GameConfig.app('app_url'))
+    if not callback.data:
+        return
     action = callback.data.split('|')[0]
     user_name = "@" + callback.from_user.username if callback.from_user.username != "" else callback.from_user.first_name
     chat_id = callback.message.chat.id

@@ -27,7 +27,7 @@
     "en": "⭐",
     "ru": "⭐"
   },
-  "slot_icon_coin": {
+  "slot_icon_coins": {
     "en": "\uD83D\uDFE1",
     "ru": "\uD83D\uDFE1"
   },
@@ -83,6 +83,10 @@
     "en": "BUY {0} = [[slot_icon_star]] {1}",
     "ru": "BUY {0} = [[slot_icon_star]] {1}"
   },
+  "show_user_coins": {
+    "en": "{0} your balance: [[slot_icon_coins]] {1}",
+    "ru": "{0}, ваш баланс: [[slot_icon_coins]] {1}"
+  },
   "want_buy_for_stars": {
     "en": "Purchase {0}",
     "ru": "Purchase {0}"
@@ -132,16 +136,16 @@
     "ru": "<a href=\"tg://resolve?domain={0}\">НЕ ИГРАЛ СЕГОДНЯ</a>"
   },
   "bonus_is_ready": {
-    "en": "start game bonus [[slot_icon_coin]] {0}",
-    "ru": "бонус за начало игры [[slot_icon_coin]] {0}"
+    "en": "start game bonus [[slot_icon_coins]] {0}",
+    "ru": "бонус за начало игры [[slot_icon_coins]] {0}"
   },
   "next_bonus_in": {
     "en": "wait bonus \uD83D\uDD70 {0}",
     "ru": "ждите бонус \uD83D\uDD70 {0}"
   },
   "invite_followers_text": {
-    "en": "Spread <b>your link</b> and receive a <b>bonus [[slot_icon_coin]]</b> at the start of the game for each follower!\nCopy this link to your clipboard:\n\n<b>[[bot_invite_url]]</b>\n\n<i>The bonus is credited once every {1} hours if the subscriber play into the game once every {2} hours. Maximum of {3} subscribers are taken into account per start</i>",
-    "ru": "Распространите <b>вашу ссылку</b> и получите <b>бонус [[slot_icon_coin]]</b> в начале игры за каждого подписчика!\nСкопируйте эту ссылку в буфер обмена:\n\n<b>[[bot_invite_url]]</b>\n\n<i>Бонус начисляется раз в {1} часов, если подписчик заходит в игру раз в {2} часов. За один запуск учитывается максимум {3} подписчиков</i>"
+    "en": "Spread <b>your link</b> and receive a <b>bonus [[slot_icon_coins]]</b> at the start of the game for each follower!\nCopy this link to your clipboard:\n\n<b>[[bot_invite_url]]</b>\n\n<i>The bonus is credited once every {1} hours if the subscriber play into the game once every {2} hours. Maximum of {3} subscribers are taken into account per start</i>",
+    "ru": "Распространите <b>вашу ссылку</b> и получите <b>бонус [[slot_icon_coins]]</b> в начале игры за каждого подписчика!\nСкопируйте эту ссылку в буфер обмена:\n\n<b>[[bot_invite_url]]</b>\n\n<i>Бонус начисляется раз в {1} часов, если подписчик заходит в игру раз в {2} часов. За один запуск учитывается максимум {3} подписчиков</i>"
   },
   "bonus_for_followers_invite": {
     "en": "Add more friends to the game \uD83C\uDF44\n[[invite_followers_text]]",
@@ -152,8 +156,8 @@
     "ru": "Нет подписчиков \uD83D\uDE30\nПриглашайте друзей, будет интересно!"
   },
   "follower_himself_error": {
-    "en": "You can't subscribe to yourself...\nSpread <b>link</b> for friends:\n<b>[[bot_invite_url]]</b>\nAnd receive a <b>bonus [[slot_icon_coin]]</b> at the start of the game.",
-    "ru": "Вы не можете подписаться на себя...\nРаспространите <b>ссылку</b> среди друзей:\n<b>[[bot_invite_url]]</b>\nИ получите <b>бонус [[slot_icon_coin]]</b> в начале игры."
+    "en": "You can't subscribe to yourself...\nSpread <b>link</b> for friends:\n<b>[[bot_invite_url]]</b>\nAnd receive a <b>bonus [[slot_icon_coins]]</b> at the start of the game.",
+    "ru": "Вы не можете подписаться на себя...\nРаспространите <b>ссылку</b> среди друзей:\n<b>[[bot_invite_url]]</b>\nИ получите <b>бонус [[slot_icon_coins]]</b> в начале игры."
   },
   "added_follower": {
     "en": "added new friend <b>{0}</b>",
@@ -184,8 +188,8 @@
     "ru": "Ошибка: имя пользователя пусто, укажите имя пользователя после команды"
   },
   "play_the_game": {
-    "en": "Start {0}...",
-    "ru": "Старт {0}..."
+    "en": "Start {0}\nYour balance: [[slot_icon_coins]] {1}",
+    "ru": "Старт {0}\nYour balance: [[slot_icon_coins]] {1}"
   },
   "error_no_user": {
     "en": "User {0} not found!",

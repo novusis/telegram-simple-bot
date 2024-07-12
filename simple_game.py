@@ -27,23 +27,11 @@ class ShopItem:
 
 
 class SimapleGame:
-    cache_users = {}
-
-    def get_online(self):
-        return len(self.cache_users.keys())
-
-    def check_online(self):
-        keys = list(self.cache_users.keys())
-        close_sessions = {}
-        for key in keys:
-            if self.cache_users[key].is_timeout_passed():
-                close_sessions[self.cache_users[key].get_first().external_id] = self.cache_users[key].get_online_time()
-                del self.cache_users[key]
-        return close_sessions
 
     def __init__(self, template_engine, login_callback):
         self.template_engine = template_engine
         self.login_callback = login_callback
+        self.cache_users = utils.CacheManager(login_callback, GameConfig.app('user_online_timeout_seconds'))
 
         stars_shop = GameConfig.get_shop_config('stars_shop')
         self.SHOP_STARS_DATA = [
@@ -70,6 +58,12 @@ class SimapleGame:
         # for info_item in all_info:
         #     print(f"TTGame allInfo <{info_item}>")
 
+    def get_online(self):
+        return self.cache_users.get_online()
+
+    def check_online(self):
+        return self.cache_users.check_online()
+
     def register_user(self, external_id, username, name, chat_id):
         print(f"SimapleGame.register_user register_user <{external_id}><{username}>")
         new_user = User(
@@ -80,16 +74,16 @@ class SimapleGame:
             name=name,
             chat_id=chat_id,
             scores=0,
+            coins=0,
         )
-        self.users.set(new_user)
+        self.users_set(new_user)
         # self.db.set_user(new_user, True)
         print(f"User {name} registered successfully!")
         return new_user
 
     def delete_user(self, external_id):
         user = self.get_user(external_id)
-        if external_id in self.cache_users:
-            del self.cache_users[external_id]
+        self.cache_users.delete(external_id)
         if user:
             self.followers.delete_by_field('user_id', user.id)
             self.users.delete(user.id)
@@ -102,19 +96,13 @@ class SimapleGame:
             return user
 
     def get_user(self, external_id, show_error=True):
-        if external_id == 0 or external_id == '':
-            utils.log_error(f"Error external_id <{external_id}>")
+        if not external_id:
+            utils.log_error(f"Error no external_id <{external_id}>")
             return
 
-        if external_id in self.cache_users:
-            # get from cache
-            return self.cache_users[external_id].get_first()
-
-        user = self.get_user_by_external_id(external_id)
+        external_id = str(external_id)
+        user = self.cache_users.get_from_cache(external_id, self.get_user_by_external_id, False)
         if user:
-            self.cache_users[external_id] = utils.CachedItem([user], GameConfig.app('user_online_timeout_seconds'))
-            if self.login_callback:
-                self.login_callback(user)
             return user
         else:
             if show_error:
@@ -159,7 +147,6 @@ class SimapleGame:
         shop_item_id = self.invoices.get(invoice_id).shop_item_id
         result = list(filter(lambda item: item.item_id == shop_item_id, self.SHOP_STARS_DATA))[0]
         self.set_invoice_status(invoice_id, Invoice.SUCCESS, telegram_payment_charge_id)
-        print(f"TTGame.complete_invoice invoice_id <{invoice_id}> SUCCESS!")
         return result
 
     def new_game(self, user):
@@ -225,3 +212,26 @@ class SimapleGame:
             return shop_item.enable
 
         return list(filter(is_shop_type, self.SHOP_STARS_DATA))
+
+    def apply_invoice_goods(self, invoice_id, shop_item):
+        coins = 0
+        for item in shop_item.items_type:
+            if item.item_id == 'coins':
+                coins += item.count
+        # result = list(filter(lambda item: item.item_id == 'coins', shop_item.items_type))[0]
+        print(f"SimapleGame.apply_invoice_goods invoice_id <{invoice_id}> has coins: +{coins}")
+        if coins > 0:
+            print(f"SimapleGame.apply_invoice_goods self.invoices.get(invoice_id).user_id <{self.invoices.get(invoice_id).user_id}>")
+            user = self.users.get(self.invoices.get(invoice_id).user_id)
+            print(f"SimapleGame.apply_invoice_goods user.coins <{user.coins}>")
+            user.coins += coins
+            print(f"SimapleGame.apply_invoice_goods user.coins <{user.coins}>")
+            self.users_set(user)
+            return True
+        else:
+            return False
+
+    def users_set(self, user):
+        self.cache_users.set_to_cache(user.external_id, user)
+        u = self.get_user(user.external_id)
+        self.users.set(user)

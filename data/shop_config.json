@@ -8,11 +8,12 @@
       ],
       "items": [
         {
-          "item_id": "coin",
-          "count": 25
+          "item_id": "coins",
+          "count": 250
         }
       ],
-      "price": 39,
+      "price_old": 39,
+      "price": 1,
       "test_price": 1
     },
     {
@@ -23,12 +24,8 @@
       ],
       "items": [
         {
-          "item_id": "armor",
-          "count": 5
-        },
-        {
-          "item_id": "coin",
-          "count": 30
+          "item_id": "coins",
+          "count": 500
         }
       ],
       "price": 49,
@@ -42,16 +39,8 @@
       ],
       "items": [
         {
-          "item_id": "live",
-          "count": 10
-        },
-        {
-          "item_id": "armor",
-          "count": 7
-        },
-        {
-          "item_id": "coin",
-          "count": 40
+          "item_id": "coins",
+          "count": 800
         }
       ],
       "price": 69,

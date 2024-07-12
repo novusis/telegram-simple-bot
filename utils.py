@@ -4,6 +4,58 @@ import traceback
 from datetime import datetime
 
 
+class CacheManager:
+    cache_items = {}
+
+    def __init__(self, add_callback, cached_timeout):
+        self.add_callback = add_callback
+        self.cached_timeout = cached_timeout
+
+    def get_online(self):
+        return len(self.cache_items.keys())
+
+    def check_online(self):
+        keys = list(self.cache_items.keys())
+        close_sessions = {}
+        for key in keys:
+            if self.cache_items[key].is_timeout_passed():
+                close_sessions[self.cache_items[key].get_first().external_id] = self.cache_items[key].get_online_time()
+                del self.cache_items[key]
+        return close_sessions
+
+    def get_from_cache(self, key, def_get, show_error=True):
+        if not key:
+            log_error(f"CacheManager.get_from_cache error: no key <{key}>")
+            return
+        key = str(key)
+        if key in self.cache_items:
+            # get from cache
+            return self.cache_items[key].get_first()
+
+        user = def_get(key)
+        if user:
+            self.set_to_cache(key, user)
+            if self.add_callback:
+                self.add_callback(user)
+            return user
+        else:
+            if show_error:
+                log_error(f"CacheManager.get_from_cache error: no item by key <{key}>")
+            return None
+
+    def set_to_cache(self, key, user):
+        key = str(key)
+        if key in self.cache_items:
+            self.cache_items[key].set([user])
+        else:
+            self.cache_items[key] = CachedItem([user], self.cached_timeout)
+
+    def delete(self, key):
+        key = str(key)
+        if key in self.cache_items:
+            del self.cache_items[key]
+
+
 class CachedItem:
     def __init__(self, items, timeout):
         self.items = items
@@ -19,6 +71,11 @@ class CachedItem:
         if not silent:
             self.last_accessed = now_unix_time()
         return self.items
+
+    def set(self, items):
+        self.items = items
+        self.last_accessed = now_unix_time()
+        print(f"CachedItem.set items <{items}>")
 
     def get_online_time(self):
         return now_unix_time() - self.start_accessed
