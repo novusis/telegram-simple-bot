@@ -100,8 +100,8 @@
     "ru": "\uD83D\uDDFA"
   },
   "start_welcome_back": {
-    "en": "Welcome back <b>{0}</b>.",
-    "ru": "С возвращением <b>{0}</b>."
+    "en": "Welcome back <b>{0}</b>.\n{1}",
+    "ru": "С возвращением <b>{0}</b>.\n{1}"
   },
   "start_first": {
     "en": "You are registration {0} success!",
@@ -126,6 +126,10 @@
   "bonus_followers": {
     "en": "Bonus for followers \uD83C\uDF89 <code>{0}</code>",
     "ru": "Бонус за подписчиков \uD83C\uDF89 <code>{0}</code>"
+  },
+  "collect_followers_bonus": {
+    "en": "COLLECT BONUS [[slot_icon_coins]] {0}",
+    "ru": "СОБЕРИТЕ БОНУС [[slot_icon_coins]] {0}"
   },
   "your_followers": {
     "en": "Your followers \uD83E\uDD3A:",
@@ -188,8 +192,12 @@
     "ru": "Ошибка: имя пользователя пусто, укажите имя пользователя после команды"
   },
   "play_the_game": {
-    "en": "Start {0}\nYour balance: [[slot_icon_coins]] {1}",
-    "ru": "Старт {0}\nYour balance: [[slot_icon_coins]] {1}"
+    "en": "Start {0}\n{1}",
+    "ru": "Старт {0}\n{1}"
+  },
+  "balance_view": {
+    "en": "Your balance: [[slot_icon_coins]] {0}",
+    "ru": "Ваш баланс: [[slot_icon_coins]] {0}"
   },
   "error_no_user": {
     "en": "User {0} not found!",

@@ -75,7 +75,8 @@ class CachedItem:
     def set(self, items):
         self.items = items
         self.last_accessed = now_unix_time()
-        print(f"CachedItem.set items <{items}>")
+        for item in items:
+            print(f"CachedItem.set item <{item}>")
 
     def get_online_time(self):
         return now_unix_time() - self.start_accessed

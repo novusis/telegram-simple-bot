@@ -48,10 +48,17 @@ class SimapleGame:
         ]
 
         self.db = Database(GameConfig.app('db_uri'))
-        info = ModelManager('info', DBInfo, self.db)
-        self.users = ModelManager('users', User, self.db, info)
+        self.info = ModelManager('info', DBInfo, self.db)
+        self.users = ModelManager('users', User, self.db, self.info)
         self.followers = ModelManager('user_followers', UserFollower, self.db)
-        self.invoices = ModelManager('invoices', Invoice, self.db, info)
+        self.invoices = ModelManager('invoices', Invoice, self.db, self.info)
+
+        # drop all bonuses
+        # all = self.followers.all()
+        # for f in all:
+        #     f.took_bonus_time = utils.now_unix_time() - 25 * 60 * 60
+        #     self.followers.set(f)
+
 
         # all_info = info.all()
         # print(f"TTGame all_info len <{len(all_info)}>")
@@ -160,9 +167,10 @@ class SimapleGame:
             # time to claim bonus
             follower.took_bonus_time = utils.now_unix_time()
             self.followers.set(follower)
+
+        print(f"SimapleGame.collect_bonus coins <{coins}>")
         user.coins += coins
-        user.bonus_collect = True
-        self.save(user)
+        self.users_set(user)
         return coins
 
     def get_bonus_followers(self, user):
@@ -173,7 +181,7 @@ class SimapleGame:
             login_timeout_h = GameConfig.bonus_for_followers('bonus_last_login_timeout_h')
             bonus_timeout_h = GameConfig.bonus_for_followers('bonus_timeout_h')
             bonus_max_followers = GameConfig.bonus_for_followers('bonus_max_followers')
-            if user and user.has_game_today() and utils.now_unix_time() - user.last_time_action < login_timeout_h * 60 * 60:
+            if user and self.user_has_game_today(user):
                 # check took bonus time
                 if utils.now_unix_time() - follower.took_bonus_time > bonus_timeout_h * 60 * 60:
                     followers_ok.append(follower)
@@ -233,5 +241,9 @@ class SimapleGame:
 
     def users_set(self, user):
         self.cache_users.set_to_cache(user.external_id, user)
-        u = self.get_user(user.external_id)
         self.users.set(user)
+
+    def user_has_game_today(self, f_user):
+        info_items = self.info.filter_by_fields({'table_name': 'users', 'target_id': f_user.id})
+        if len(info_items) > 0:
+            return utils.now_unix_time() - info_items[0].set_time < GameConfig.bonus_for_followers('bonus_last_login_timeout_h') * 60 * 60

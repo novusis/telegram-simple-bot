@@ -105,7 +105,7 @@ async def start_new_game(chat_id, external_id):
         # await make_game_level(chat_id, user)
         game.new_game(user)
         reply_markup = get_shop_button_view()
-        await bot.send_message(chat_id, templator.get("play_the_game", user.username, user.coins), reply_markup=reply_markup)
+        await bot.send_message(chat_id, templator.get("play_the_game", user.username, templator.get("balance_view", user.coins)), reply_markup=reply_markup)
         simple_analytics.set_player(user.external_id)
     else:
         await bot.send_message(chat_id, templator.get("error_no_user", external_id))
@@ -132,13 +132,17 @@ async def show_followers(chat_id, external_id):
         bonus_login_timeout_h = GameConfig.bonus_for_followers("bonus_last_login_timeout_h")
         bonus_coins = GameConfig.bonus_for_followers("bonus_coins")
         bonus_max_followers = GameConfig.bonus_for_followers("bonus_max_followers")
+        coins = 0
         for follower in followers:
             f_user = game.users.get(follower.user_id)
             if f_user:
                 timer = bonus_timeout_h * 60 * 60 - (int(time.time()) - follower.took_bonus_time)
                 play_today = ""
 
-                if not f_user.has_game_today():
+                if game.user_has_game_today(f_user):
+                    if timer < 0 and coins < bonus_coins * bonus_max_followers:
+                        coins += bonus_coins
+                else:
                     play_today = f" {templator.get('follower_no_played', f_user.username)} "
 
                 if timer > 0:
@@ -148,10 +152,15 @@ async def show_followers(chat_id, external_id):
                         r += f"<b>{f_user.name}</b> - {templator.get('bonus_is_ready', bonus_coins)}\n"
                     else:
                         r += f"<b>{f_user.name}</b> - {play_today}\n"
+            else:
+                game.followers.delete(follower.id)
 
         if len(followers) == 0:
             r = templator.get('no_followers', user.name, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers)
-        await bot.send_message(chat_id, r)
+        builder = InlineKeyboardBuilder()
+        if coins > 0:
+            builder.button(text=templator.get('collect_followers_bonus', coins), callback_data=f'collect_bonus')
+        await bot.send_message(chat_id, r, reply_markup=builder.as_markup())
     except Exception as e:
         traceback.print_exc()
         utils.log_error(f".show_followers error: <{e}>")
@@ -280,7 +289,7 @@ async def start(message: types.Message, command: CommandObject):
 
         user = game.get_self_user(message.from_user.id, message.chat.id)
         if user:
-            await message.answer(templator.get(f'start_welcome_back', user.name), reply_markup=builder.as_markup(resize_keyboard=True))
+            await message.answer(templator.get(f'start_welcome_back', user.name, templator.get("balance_view", user.coins)), reply_markup=builder.as_markup(resize_keyboard=True))
             simple_analytics.set_player(message.from_user.id)
         else:
             await registration(message)
@@ -380,13 +389,13 @@ async def admin_analytic(message: Message):
 
 @dp.message(F.text)
 async def text_message_handler(message: types.Message):
-    print(f".text_message_handler message <{message}>")
     try:
         if await buttons_keyboard_action(message):
             return
         if message.text.lower() == 'hello':
-            await message.reply(f'Hello {message.from_user.username}, welcome to the <b>Treasure Trip</b> game!')
-        await bot.delete_message(message.chat.id, message.message_id)
+            await message.reply(f'Hello {message.from_user.first_name}, welcome to the game!')
+        else:
+            await bot.delete_message(message.chat.id, message.message_id)
 
     except Exception as e:
         traceback.print_exc()
@@ -480,7 +489,8 @@ async def success_payment(message: Message):
 
 @dp.inline_query(lambda callback: True)
 async def inline_query(query: types.InlineQuery):
-    game.register_user(query.from_user.id, query.from_user.username, query.from_user.first_name, 0)
+    if not game.get_user(query.from_user.id, False):
+        game.register_user(query.from_user.id, query.from_user.username, query.from_user.first_name, 0)
     await bot.answer_inline_query(inline_query_id=query.id, results=[InlineQueryResultGame(type=InlineQueryResultType.GAME, id=token_hex(2), game_short_name='stc')])
 
 
@@ -523,10 +533,8 @@ async def callback_message(callback: types.CallbackQuery):
         return
 
     if action == "collect_bonus":
-        bonus = game.collect_bonus(user)
-        # TODO : 
-        print(f".callback_message bonus <{bonus}>")
-        await bot.edit_message_text(callback.message.html_text, chat_id, message_id)
+        game.collect_bonus(user)
+        await bot.edit_message_text(callback.message.html_text + "\n" + templator.get('balance_view', user.coins), chat_id, message_id)
         return
 
     print("NO ACTION")

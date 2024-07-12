@@ -92,19 +92,14 @@ class ModelManager:
 
     def _make_info(self, model, informer):
         if self.info:
-            current_time = time.time()
-            targets = self.info.filter_by_field('target_id', model.id)
-            new_info = True
-            for target in targets:
-                if target.table_name == self.table_name:
-                    informer(target, current_time)
-                    self.info.set(target)
-                    new_info = False
-
-            if new_info:
+            current_time = utils.now_unix_time()
+            targets = self.info.filter_by_fields({'table_name': self.table_name, 'target_id': model.id})
+            if len(targets) > 0:
+                target = targets[0]
+            else:
                 target = DBInfo(None, self.table_name, model.id, current_time, current_time, 0, 0, 0, 0)
-                informer(target, current_time)
-                self.info.set(target)
+            informer(target, current_time)
+            self.info.set(target)
 
     def filter_by_field(self, field_name, field_value, query_options=None):
         results = []
@@ -128,10 +123,33 @@ class ModelManager:
                 results.append(model_instance)
         return results
 
+    def filter_by_fields(self, fields_dict, query_options=None):
+        results = []
+        order_by = f"ORDER BY {query_options.order_by} {query_options.order_direction}" if query_options and query_options.order_by else ""
+
+        limit_offset = ""
+        if query_options:
+            if query_options.limit is not None:
+                limit_offset = f"LIMIT {query_options.limit}"
+                if query_options.offset is not None:
+                    limit_offset += f" OFFSET {query_options.offset}"
+
+        field_queries = [f"{field} = ?" for field in fields_dict.keys()]
+        query = f"SELECT * FROM {self.table_name} WHERE {' AND '.join(field_queries)} {order_by} {limit_offset}"
+
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, tuple(fields_dict.values()))
+            records = cursor.fetchall()
+            for record in records:
+                model_instance = self._make_model(record)
+                results.append(model_instance)
+        return results
+
     def delete(self, id):
         self.db.delete_record(self.table_name, id)
         if self.info:
-            targets = self.info.filter_by_field('target_id', id)
+            targets = self.info.filter_by_fields({'table_name': self.table_name, 'target_id': id})
             if len(targets) > 0:
                 targets[0].delete_time = time.time()
                 self.info.set(targets[0])
@@ -145,12 +163,6 @@ class ModelManager:
     def _make_model(self, record):
         model = self.model_class(*record)
         self._make_info(model, self._info_get)
-        # if self.info:
-        #     targets = self.info.filter_by_field('target_id', model_class.id)
-        #     if len(targets) > 0:
-        #         targets[0].get_time = time.time()
-        #         targets[0].get_count += 1
-        #         self.info.set(targets[0])
         return model
 
     @staticmethod
