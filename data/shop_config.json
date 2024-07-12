@@ -12,9 +12,7 @@
           "count": 250
         }
       ],
-      "price_old": 39,
-      "price": 1,
-      "test_price": 1
+      "price": 39
     },
     {
       "shop_item_id": "shop_item_id_2",
@@ -28,8 +26,7 @@
           "count": 500
         }
       ],
-      "price": 49,
-      "test_price": 2
+      "price": 49
     },
     {
       "shop_item_id": "shop_item_id_3",
@@ -43,8 +40,7 @@
           "count": 800
         }
       ],
-      "price": 69,
-      "test_price": 3
+      "price": 69
     }
   ]
 }
