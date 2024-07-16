@@ -2,7 +2,7 @@ import utils
 from data.game_config import GameConfig
 from models.db_invoices import Invoice
 from models.db_user import User, UserFollower
-from models.database import ModelManager, Database, QueryOptions, DBInfo
+from models.database import ModelManager, Database, QueryOptions, DBInfo, DBVar
 
 
 class ShopSlotItem:
@@ -49,6 +49,7 @@ class SimapleGame:
 
         self.db = Database(GameConfig.app('db_uri'))
         self.info = ModelManager('info', DBInfo, self.db)
+        self.vars = ModelManager('vars', DBVar, self.db)
         self.users = ModelManager('users', User, self.db, self.info)
         self.followers = ModelManager('user_followers', UserFollower, self.db)
         self.invoices = ModelManager('invoices', Invoice, self.db, self.info)
@@ -58,7 +59,6 @@ class SimapleGame:
         # for f in all:
         #     f.took_bonus_time = utils.now_unix_time() - 25 * 60 * 60
         #     self.followers.set(f)
-
 
         # all_info = info.all()
         # print(f"TTGame all_info len <{len(all_info)}>")
@@ -247,3 +247,21 @@ class SimapleGame:
         info_items = self.info.filter_by_fields({'table_name': 'users', 'target_id': f_user.id})
         if len(info_items) > 0:
             return utils.now_unix_time() - info_items[0].set_time < GameConfig.bonus_for_followers('bonus_last_login_timeout_h') * 60 * 60
+
+    def increment_app_url_version(self):
+        field = self.vars.filter_by_field('var_name', 'app_url_version')
+        if field:
+            field[0].var_value = str(int(field[0].var_value) + 1)
+            self.vars.set(field[0])
+        else:
+            self.vars.set(DBVar(id=None, var_name='app_url_version', var_value="0"))
+
+    def get_app_url_version(self):
+        field = self.vars.filter_by_field('var_name', 'app_url_version')
+        if field:
+            version = field[0].var_value
+        else:
+            version = "0"
+            self.vars.set(DBVar(id=None, var_name='app_url_version', var_value=version))
+        print(f"SimapleGame.get_app_url_version version <{version}>")
+        return version

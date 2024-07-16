@@ -198,6 +198,18 @@ class DBModel:
         return f"{type(self).__name__}: {', '.join(output)}"
 
 
+class DBVar(DBModel):
+    Fields = {
+        "var_name": ["TEXT", "noname"],
+        "var_value": ["TEXT", ""]
+    }
+
+    def __init__(self, id, var_name, var_value):
+        self.id = id
+        self.var_name = var_name
+        self.var_value = var_value
+
+
 class DBInfo(DBModel):
     Fields = {
         "table_name": ["TEXT", 0],

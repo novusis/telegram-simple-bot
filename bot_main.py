@@ -237,6 +237,7 @@ async def buttons_keyboard_action(message: types.Message):
         result = True
         if message.text in [START_GAME]:
             await start_game(message)
+            await bot.send_game(message.chat.id, 'stc')
         elif message.text == BONUSES:
             await show_followers(message.chat.id, message.from_user.id)
             markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text=templator.get("open_your_invite_url"), url=templator.get("bot_invite_url", message.from_user.username))]])
@@ -351,6 +352,13 @@ async def delete_spam(message: Message):
 def user_is_admin(username):
     user = game.get_user_by_username(username)
     return user and user.username in GameConfig.app('admins')
+
+
+@dp.message(Command('cc'))
+async def cc(message: Message):
+    username = message.from_user.username
+    if user_is_admin(username):
+        game.increment_app_url_version()
 
 
 @dp.message(Command('online'))
@@ -498,7 +506,7 @@ async def inline_query(query: types.InlineQuery):
 async def callback_message(callback: types.CallbackQuery):
     # callback.game_short_name
     if callback.game_short_name:
-        await callback.answer(callback.game_short_name, url=GameConfig.app('app_url'))
+        await callback.answer(callback.game_short_name, url=GameConfig.app_url(game.get_app_url_version()))
     if not callback.data:
         return
     action = callback.data.split('|')[0]

@@ -18,6 +18,10 @@ class GameConfig:
     #     game_config = json.load(f)
 
     @staticmethod
+    def app_url(version):
+        return GameConfig.app('app_url') + "?r=" + version
+
+    @staticmethod
     def app(field):
         game_config = GameConfig.APP_CONFIG_PATH
         if not GameConfig.app_config:

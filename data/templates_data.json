@@ -12,16 +12,16 @@
     "ru": "[[bot_link_param]]f={0}"
   },
   "button_start_game": {
-    "en": "⚔\uFE0F START GAME",
-    "ru": "⚔\uFE0F НАЧАТЬ ИГРУ"
+    "en": "⚔\uFE0F\nSTART GAME",
+    "ru": "⚔\uFE0F\nНАЧАТЬ ИГРУ"
   },
   "button_bonuses": {
-    "en": "BONUSES‼\uFE0F",
-    "ru": "БОНУСЫ‼\uFE0F"
+    "en": "‼\uFE0F\nBONUSES",
+    "ru": "‼\uFE0F\nБОНУСЫ"
   },
   "button_top": {
-    "en": "TOP {0} \uD83C\uDFC6",
-    "ru": "ЛИДЕРЫ {0} \uD83C\uDFC6"
+    "en": "\uD83C\uDFC6\nTOP {0}",
+    "ru": "\uD83C\uDFC6\nЛИДЕРЫ {0}"
   },
   "slot_icon_star": {
     "en": "⭐",
