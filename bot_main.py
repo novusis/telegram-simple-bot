@@ -157,7 +157,7 @@ async def buttons_keyboard_action(message: types.Message):
             bonus_login_timeout_h = GameConfig.bonus_for_followers("bonus_last_login_timeout_h")
             bonus_coins = GameConfig.bonus_for_followers("bonus_coins")
             bonus_max_followers = GameConfig.bonus_for_followers("bonus_max_followers")
-            await bot.send_message(message.chat.id, templator.get('bonus_for_followers_invite', message.from_user.username, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers),
+            await bot.send_message(message.chat.id, templator.get('bonus_for_followers_invite', message.from_user.id, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers),
                                    parse_mode='html', reply_markup=buttons.bonus_invite(message.from_user.id))
         elif message.text == TOP:
             await draw_top(message.chat.id, message.from_user.id)
