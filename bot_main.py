@@ -46,6 +46,7 @@ START_GAME = templator.get('button_start_game')
 BONUSES = templator.get('button_bonuses')
 TOP = templator.get('button_top', top_count)
 
+print(f". VERSION <{VERSION}>")
 
 #
 #   FUNCTIONS
