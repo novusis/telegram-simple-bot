@@ -1,7 +1,7 @@
 {
   "bot_name": {
-    "en": "treasure_trip_bot",
-    "ru": "treasure_trip_bot"
+    "en": "NovusisBot",
+    "ru": "NovusisBot"
   },
   "bot_link_param": {
     "en": "https://t.me/[[bot_name]]?start=",
@@ -54,10 +54,6 @@
   "slot_icon_armor": {
     "en": "\uD83D\uDEE1",
     "ru": "\uD83D\uDEE1"
-  },
-  "action_start_game": {
-    "en": "🍀 START GAME",
-    "ru": "\uD83C\uDF40 НАЧАТЬ ИГРУ"
   },
   "action_run": {
     "en": "🏃 RUN",

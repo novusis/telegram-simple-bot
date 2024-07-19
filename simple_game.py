@@ -20,16 +20,16 @@ class ShopItem:
         self.price = price
 
     def get_goods_view(self, template_get):
-        shop_item_view = ""
-        for shop_item in self.items_type:
-            shop_item_view += f"{template_get(f'slot_icon_{shop_item.item_id}')} {str(shop_item.count)} "
-        return shop_item_view
+        print(f"ShopItem.get_goods_view ok template_get:{template_get}")
+        return " ".join([
+            f"{template_get(f'slot_icon_{shop_item.item_id}')} {shop_item.count}" for shop_item in self.items_type
+        ])
 
 
-class SimapleGame:
+class GameController:
 
-    def __init__(self, template_engine, login_callback):
-        self.template_engine = template_engine
+    def __init__(self, templator, login_callback):
+        self.templator = templator
         self.login_callback = login_callback
         self.cache_users = utils.CacheManager(login_callback, GameConfig.app('user_online_timeout_seconds'))
 
@@ -61,9 +61,9 @@ class SimapleGame:
         #     self.followers.set(f)
 
         # all_info = info.all()
-        # print(f"TTGame all_info len <{len(all_info)}>")
+        # print(f"SimpleGame all_info len <{len(all_info)}>")
         # for info_item in all_info:
-        #     print(f"TTGame allInfo <{info_item}>")
+        #     print(f"SimpleGame allInfo <{info_item}>")
 
     def get_online(self):
         return self.cache_users.get_online()
@@ -72,7 +72,6 @@ class SimapleGame:
         return self.cache_users.check_online()
 
     def register_user(self, external_id, username, name, chat_id):
-        print(f"SimapleGame.register_user register_user <{external_id}><{username}>")
         new_user = User(
             id=None,
             bot=False,
@@ -135,12 +134,12 @@ class SimapleGame:
     def get_stars_shop_item_by_invoice(self, invoice_id):
         invoice = self.invoices.get(invoice_id)
         if not invoice:
-            print(f"TTGame.get_stars_shop_item_by_invoice > error invoice <{invoice_id}>")
+            print(f"SimpleGame.get_stars_shop_item_by_invoice > error invoice <{invoice_id}>")
             return None
         item_id = invoice.shop_item_id
         found_item = next((item for item in self.SHOP_STARS_DATA if item.item_id == item_id), None)
         if not found_item:
-            print(f"TTGame.get_stars_shop_item_by_invoice > error item id find <{item_id}>")
+            print(f"SimpleGame.get_stars_shop_item_by_invoice > error item id find <{item_id}>")
             return None
         return found_item
 
@@ -227,13 +226,9 @@ class SimapleGame:
             if item.item_id == 'coins':
                 coins += item.count
         # result = list(filter(lambda item: item.item_id == 'coins', shop_item.items_type))[0]
-        print(f"SimapleGame.apply_invoice_goods invoice_id <{invoice_id}> has coins: +{coins}")
         if coins > 0:
-            print(f"SimapleGame.apply_invoice_goods self.invoices.get(invoice_id).user_id <{self.invoices.get(invoice_id).user_id}>")
             user = self.users.get(self.invoices.get(invoice_id).user_id)
-            print(f"SimapleGame.apply_invoice_goods user.coins <{user.coins}>")
             user.coins += coins
-            print(f"SimapleGame.apply_invoice_goods user.coins <{user.coins}>")
             self.users_set(user)
             return True
         else:
@@ -250,11 +245,14 @@ class SimapleGame:
 
     def increment_app_url_version(self):
         field = self.vars.filter_by_field('var_name', 'app_url_version')
+        app_version = "0"
         if field:
-            field[0].var_value = str(int(field[0].var_value) + 1)
+            app_version = str(int(field[0].var_value) + 1)
+            field[0].var_value = app_version
             self.vars.set(field[0])
         else:
-            self.vars.set(DBVar(id=None, var_name='app_url_version', var_value="0"))
+            self.vars.set(DBVar(id=None, var_name='app_url_version', var_value=app_version))
+        return app_version
 
     def get_app_url_version(self):
         field = self.vars.filter_by_field('var_name', 'app_url_version')
@@ -263,5 +261,4 @@ class SimapleGame:
         else:
             version = "0"
             self.vars.set(DBVar(id=None, var_name='app_url_version', var_value=version))
-        print(f"SimapleGame.get_app_url_version version <{version}>")
         return version

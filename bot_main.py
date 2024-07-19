@@ -11,22 +11,22 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode, InlineQueryResultType
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, KeyboardButton, LabeledPrice, PreCheckoutQuery, BufferedInputFile, InlineQueryResultArticle, InlineQueryResultGame, InlineQueryResultPhoto
 from aiogram.filters import CommandStart, Command, CommandObject
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 import utils
 from data.game_config import GameConfig
 from data.simple_templator import SimpleTemplator
+from keyboards import Keyboards
 from models.db_invoices import Invoice
 from simple_analytics import SimpleAnalytics
 from simple_resources import SimpleResources
 
-from simple_game import SimapleGame
+from simple_game import GameController
 from utils import convert_seconds_to_hm
 import time
 
 # Initialize bot and dispatcher
 
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 API_TOKEN = GameConfig.app('token')
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -36,7 +36,10 @@ templator = SimpleTemplator(GameConfig.app('templates_data'), 'en')
 simple_analytics = SimpleAnalytics(GameConfig.app('db_analytic_uri'))
 resources = SimpleResources(GameConfig.app('db_resources_uri'))
 
-game = SimapleGame(templator, lambda user: simple_analytics.set_login(user.external_id))
+game = GameController(templator, lambda user: simple_analytics.set_login(user.external_id))
+
+buttons = Keyboards(game, templator)
+
 top_count = 15
 wait_followers = {}
 
@@ -64,14 +67,7 @@ async def draw_top(chat_id, external_id):
     else:
         r = "no players..."
 
-    if external_id:
-        if game.get_user(external_id):
-            buttons = [[InlineKeyboardButton(text=templator.get("action_start_game"), callback_data=f"action_start_game")]]
-        else:
-            buttons = [[]]
-        await bot.send_message(chat_id, templator.get("message_top_text", top_count, r), reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
-    else:
-        await bot.send_message(chat_id, templator.get("message_top_text", top_count, r))
+    await bot.send_message(chat_id, templator.get("message_top_text", top_count, r))
 
 
 async def start_game(message: types.Message):
@@ -87,8 +83,7 @@ async def registration(message):
     user_to_follower_id = wait_followers.pop(user.id, None)
     if user_to_follower_id:
         await add_follower(message.chat.id, user, user_to_follower_id)
-    reply_markup = get_shop_button_view()
-    await message.answer(templator.get("new_registration", user.external_id), reply_markup=reply_markup)
+    await message.answer(templator.get("new_registration", user.external_id), reply_markup=buttons.shop())
     # analytics.new_registration(message.from_user.id)
 
 
@@ -104,8 +99,7 @@ async def start_new_game(chat_id, external_id):
         # await bot.send_message(chat_id, template_engine.get("play_the_game", user.name))
         # await make_game_level(chat_id, user)
         game.new_game(user)
-        reply_markup = get_shop_button_view()
-        await bot.send_message(chat_id, templator.get("play_the_game", user.username, templator.get("balance_view", user.coins)), reply_markup=reply_markup)
+        await bot.send_message(chat_id, templator.get("play_the_game", user.username, templator.get("balance_view", user.coins)), reply_markup=buttons.shop())
         simple_analytics.set_player(user.external_id)
     else:
         await bot.send_message(chat_id, templator.get("error_no_user", external_id))
@@ -157,10 +151,7 @@ async def show_followers(chat_id, external_id):
 
         if len(followers) == 0:
             r = templator.get('no_followers', user.name, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers)
-        builder = InlineKeyboardBuilder()
-        if coins > 0:
-            builder.button(text=templator.get('collect_followers_bonus', coins), callback_data=f'collect_bonus')
-        await bot.send_message(chat_id, r, reply_markup=builder.as_markup())
+        await bot.send_message(chat_id, r, reply_markup=buttons.collect_bonus(coins))
     except Exception as e:
         traceback.print_exc()
         utils.log_error(f".show_followers error: <{e}>")
@@ -240,13 +231,12 @@ async def buttons_keyboard_action(message: types.Message):
             await bot.send_game(message.chat.id, 'stc')
         elif message.text == BONUSES:
             await show_followers(message.chat.id, message.from_user.id)
-            markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text=templator.get("open_your_invite_url"), url=templator.get("bot_invite_url", message.from_user.username))]])
             bonus_timeout_h = GameConfig.bonus_for_followers("bonus_timeout_h")
             bonus_login_timeout_h = GameConfig.bonus_for_followers("bonus_last_login_timeout_h")
             bonus_coins = GameConfig.bonus_for_followers("bonus_coins")
             bonus_max_followers = GameConfig.bonus_for_followers("bonus_max_followers")
             await bot.send_message(message.chat.id, templator.get('bonus_for_followers_invite', message.from_user.username, bonus_timeout_h, bonus_login_timeout_h, bonus_max_followers),
-                                   parse_mode='html', reply_markup=markup)
+                                   parse_mode='html', reply_markup=buttons.bonus_invite(message.from_user.id))
         elif message.text == TOP:
             await draw_top(message.chat.id, message.from_user.id)
         else:
@@ -279,23 +269,16 @@ async def start(message: types.Message, command: CommandObject):
     sys.stdout.flush()
 
     try:
-        builder = ReplyKeyboardBuilder()
-
-        bt_start_game = types.KeyboardButton(text=START_GAME)
-        bt_bonuses = KeyboardButton(text=BONUSES)
-        bt_top = KeyboardButton(text=TOP)
 
         await bot.send_message(chat_id=message.chat.id, text=f'<code><b>beta v{VERSION}</b></code>')
-        builder.add(bt_start_game, bt_bonuses, bt_top)
-
         user = game.get_self_user(message.from_user.id, message.chat.id)
         if user:
-            await message.answer(templator.get(f'start_welcome_back', user.name, templator.get("balance_view", user.coins)), reply_markup=builder.as_markup(resize_keyboard=True))
+            await message.answer(templator.get(f'start_welcome_back', user.name, templator.get("balance_view", user.coins)), reply_markup=buttons.main_menu(START_GAME, BONUSES, TOP))
             simple_analytics.set_player(message.from_user.id)
         else:
             await registration(message)
-            await message.answer(templator.get('start_first', message.from_user.username), reply_markup=builder.as_markup(resize_keyboard=True))
-        await bot.send_game(message.chat.id, 'stc')
+            await message.answer(templator.get('start_first', message.from_user.username), reply_markup=buttons.main_menu(START_GAME, BONUSES, TOP))
+        await bot.send_game(message.chat.id, GameConfig.app('short_game_name'))
     except Exception as e:
         traceback.print_exc()
         print(f"\033[91m.start > ERROR <{e}>\033[0m")
@@ -305,9 +288,7 @@ async def start(message: types.Message, command: CommandObject):
 async def delete(message: types.Message):
     user = game.get_user(message.from_user.id)
     if user:
-        markup = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text='Yes', callback_data=f'delete_user_yes'),
-                                                              types.InlineKeyboardButton(text='No', callback_data=f'delete_user_no')]])
-        await message.answer(templator.get("delete_user", user.get_username_or_name()), reply_markup=markup)
+        await message.answer(templator.get("delete_user", user.get_username_or_name()), reply_markup=buttons.delete_user())
     else:
         await message.answer(templator.get("error_no_user", message.from_user.username))
 
@@ -319,8 +300,7 @@ async def show_followers_command(message: types.Message):
 
 @dp.message(Command('author'))
 async def author_command(message: types.Message):
-    markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Sponsor Co-life", url='https://co-lifeprofit.tilda.ws/')]])
-    await message.reply(templator.get("about_info"), reply_markup=markup)
+    await message.reply(templator.get("about_info"), reply_markup=buttons.sponsor("Sponsor Co-life", 'https://co-lifeprofit.tilda.ws/'))
 
 
 # @dp.message(Command('help'))
@@ -358,7 +338,8 @@ def user_is_admin(username):
 async def cc(message: Message):
     username = message.from_user.username
     if user_is_admin(username):
-        game.increment_app_url_version()
+        app_version = game.increment_app_url_version()
+        await bot.send_message(message.chat.id, f"set web app version: {app_version}")
 
 
 @dp.message(Command('online'))
@@ -379,11 +360,7 @@ async def admin_online(message: Message):
 async def admin_cheats(message: Message):
     username = message.from_user.username
     if user_is_admin(username):
-        mb = InlineKeyboardBuilder()
-        mb.button(text=templator.get("slot_icon_live"), callback_data=f"cheat_lives")
-        mb.button(text=templator.get("slot_icon_coin"), callback_data=f"cheat_coins")
-        mb.button(text=templator.get("slot_icon_armor"), callback_data=f"cheat_armor")
-        await bot.send_message(message.chat.id, templator.get('cheats_text'), reply_markup=mb.as_markup())
+        await bot.send_message(message.chat.id, templator.get('cheats_text'), reply_markup=buttons.cheats())
 
 
 @dp.message(Command('analytic'))
@@ -499,7 +476,8 @@ async def success_payment(message: Message):
 async def inline_query(query: types.InlineQuery):
     if not game.get_user(query.from_user.id, False):
         game.register_user(query.from_user.id, query.from_user.username, query.from_user.first_name, 0)
-    await bot.answer_inline_query(inline_query_id=query.id, results=[InlineQueryResultGame(type=InlineQueryResultType.GAME, id=token_hex(2), game_short_name='stc')])
+    game_short_name = GameConfig.app('short_game_name')
+    await bot.answer_inline_query(inline_query_id=query.id, results=[InlineQueryResultGame(type=InlineQueryResultType.GAME, id=token_hex(2), game_short_name=game_short_name)])
 
 
 @dp.callback_query(lambda callback: True)
@@ -536,7 +514,7 @@ async def callback_message(callback: types.CallbackQuery):
 
     user = game.get_user(external_id)
     if not user:
-        print(f".callback_message > Error user not found <{user_name}>!")
+        utils.log_error(f".callback_message error: user not found <{user_name}>")
         await start_new_game(chat_id, external_id)
         return
 
@@ -547,17 +525,6 @@ async def callback_message(callback: types.CallbackQuery):
 
     print("NO ACTION")
     await bot.answer_callback_query(callback.id, templator.get("no_action"))
-
-
-def get_shop_button_view():
-    builder = InlineKeyboardBuilder()
-    shop_stars_data = game.get_shop_stars_data()
-    for shop in shop_stars_data:
-        # builder.button(text="20 ⭐️", callback_data=f'add_balance|{user.username}', pay=True)
-        builder.row(
-            InlineKeyboardButton(text=templator.get("action_stars_shop_item", shop.get_goods_view(templator.get), str(shop.price)), callback_data=f'shop_item_star|{shop.item_id}', pay=True))
-
-    return builder.as_markup()
 
 
 @dp.message(Command('delete'))
