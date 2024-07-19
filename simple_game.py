@@ -20,7 +20,6 @@ class ShopItem:
         self.price = price
 
     def get_goods_view(self, template_get):
-        print(f"ShopItem.get_goods_view ok template_get:{template_get}")
         return " ".join([
             f"{template_get(f'slot_icon_{shop_item.item_id}')} {shop_item.count}" for shop_item in self.items_type
         ])
