@@ -44,7 +44,7 @@ async def start(message: types.Message, command: CommandObject):
                                  reply_markup=bot_main.buttons.main_menu(START_GAME, BONUSES, TOP))
             bot_main.simple_analytics.set_player(message.from_user.id)
         else:
-            await bot_main.registration(message)
+            await registration(message)
             await message.answer(templator.get('start_first', message.from_user.username), reply_markup=bot_main.buttons.main_menu(START_GAME, BONUSES, TOP))
         await bot.send_game(message.chat.id, bot_main.GameConfig.app('short_game_name'))
     except Exception as e:

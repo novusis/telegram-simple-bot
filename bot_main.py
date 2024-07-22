@@ -25,7 +25,7 @@ import time
 
 # Initialize bot and dispatcher
 
-VERSION = '0.0.6'
+VERSION = '0.0.7'
 API_TOKEN = GameConfig.app('token')
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
