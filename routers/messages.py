@@ -15,7 +15,7 @@ async def text_message_handler(message: types.Message):
         if await bot_main.buttons_keyboard_action(message):
             return
         if message.text.lower() == 'hello':
-            await message.reply(f'Hello {message.from_user.first_name}, welcome to the game!')
+            await message.reply(f'Hello {message.from_user.first_name}, welcome!')
         else:
             await bot.delete_message(message.chat.id, message.message_id)
 

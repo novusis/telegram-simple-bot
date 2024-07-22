@@ -25,7 +25,7 @@ import time
 
 # Initialize bot and dispatcher
 
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 API_TOKEN = GameConfig.app('token')
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -48,11 +48,8 @@ TOP = templator.get('button_top', top_count)
 
 print(f". VERSION <{VERSION}>")
 
-#
-#   FUNCTIONS
-#
 
-async def draw_top(chat_id, external_id):
+async def draw_top(chat_id):
     top_players = game.get_top_players(top_count)
     r = ""
     if top_players:
