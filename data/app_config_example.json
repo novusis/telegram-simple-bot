@@ -5,6 +5,7 @@
     ],
     "token": "YOUR_TELEGRAM_TOKEN",
     "app_url": "YOUR_WEB_APP_URL",
+    "short_game_name": "YOUR_SHORT_GAME_NAME",
     "templates_data": "data/templates_data.json",
     "db_uri": "db/application.db",
     "db_resources_uri": "db/resources.db",
