@@ -1,4 +1,17 @@
-#Простой шаблон для телеграм бота
+# Простой шаблон для телеграм бота
+
+````
+your-repository/
+│
+├── data/
+│   └── app_config_example.json
+│
+├── db/
+│
+├── Makefile
+└── README.md
+````
+
 #Деплой описан в Makefile!
 
 #создание volume:
