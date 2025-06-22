@@ -1,28 +1,35 @@
+import json
 import sqlite3
 import time
 
 import utils
 
-
 # Model example:
-# class UserFollower:
-#     Fields = {
-#         "user_id": ["INTEGER", 0],
-#         "username": ["TEXT", ""],
-#         "took_bonus_time": ["INTEGER", ""]
-#     }
-# 
-#     def __init__(self, id, user_id, username, took_bonus_time):
-#         self.id = id
-#         self.user_id = user_id
-#         self.username = username
-#         self.took_bonus_time = int(took_bonus_time)
-# 
-#     def __getitem__(self, item):
-#         return getattr(self, item)
-# 
-#     def __setitem__(self, key, value):
-#         return setattr(self, key, value)
+"""
+class UserFollower:
+    Fields = {
+        "user_id": ["INTEGER", 0],
+        "username": ["TEXT", ""],
+        "took_bonus_time": ["INTEGER", ""]
+        "content_list": ["JSON", []],
+        "content_dict": ["JSON", {}]
+    }
+
+    def __init__(self, id, user_id, username, took_bonus_time, content_list, content_dict):
+        self.id = id
+        self.user_id = user_id
+        self.username = username
+        self.took_bonus_time = int(took_bonus_time)
+        self.content_list = int(content_list)
+        self.content_dict = int(content_dict)
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
+"""
+
 
 class QueryOptions:
     SORT_ASC = 'ASC'
@@ -69,17 +76,26 @@ class ModelManager:
     def get(self, id):
         record = self.db.read_record(self.table_name, id)
         if record:
-            return self._make_model(record)
+            processed_record = self._deserialize_fields(record)
+            return self._make_model(processed_record)
         return None
 
     def set(self, model):
         fields_and_value = {}
 
-        # if self.info and self.table_name != 'info':
-        #     utils.log_stack(f"ModelManager.set > self <{self.table_name}>:\n", limit=5)
+        if self.info and self.table_name != 'info':
+            utils.log_stack(f"ModelManager.set > self <{self.table_name}>:\n", limit=5)
 
         for field in model.Fields:
-            fields_and_value[field] = model[field]
+            value = model[field]
+            field_type = model.Fields[field][0]
+
+            # Сериализуем списки в JSON перед сохранением
+            if field_type == "JSON":
+                fields_and_value[field] = json.dumps(value) if value is not None else json.dumps([])
+            else:
+                fields_and_value[field] = value
+
         # if model.id is None to create, if no to update
         if model.id is None:
             model.id = self.db.create_record(self.table_name, fields_and_value)
@@ -89,6 +105,24 @@ class ModelManager:
         self._make_info(model, self._info_set)
 
         return model.id
+
+    def _deserialize_fields(self, record):
+        """
+        Deserialization from a database based on types defined in Fields model
+        """
+        result = []
+        fields = list(self.model_class.Fields.values())
+
+        for index, value in enumerate(record):
+            if 0 < index <= len(fields) and fields[index - 1][0] == "JSON":
+                if value is "":
+                    result.append(fields[index - 1][1])
+                else:
+                    result.append(json.loads(value))
+            else:
+                result.append(value)
+
+        return result
 
     def _make_info(self, model, informer):
         if self.info:

@@ -23,11 +23,14 @@ from simple_game import GameController
 from utils import convert_seconds_to_hm
 import time
 
-# Initialize bot and dispatcher
+"""
+[0.0.8] - Deserialization from a database based on types defined in Fields model
+"""
 
-VERSION = '0.0.7'
+VERSION = '0.0.8'
 API_TOKEN = GameConfig.app('token')
 
+# Initialize bot and dispatcher
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
