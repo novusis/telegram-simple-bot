@@ -1,8 +1,10 @@
 import ipaddress
 import os
+import selectors
 import shutil
 import ssl
 import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -144,7 +146,8 @@ class CertificateManager:
         if not self.email:
             self._log("cannot request Let's Encrypt certificate: email is missing")
             return
-        if shutil.which("certbot") is None:
+        certbot_path = shutil.which("certbot")
+        if certbot_path is None:
             self._log("cannot request Let's Encrypt certificate: certbot is not installed")
             return
 
@@ -153,6 +156,12 @@ class CertificateManager:
             self._log("cannot request Let's Encrypt certificate: no DNS domain names configured")
             return
 
+        self._log(f"certbot executable: {certbot_path}")
+        self._log(f"certificate target: cert={self.cert_file}, key={self.key_file}")
+        self._log(f"ACME webroot: {self.webroot.resolve()}")
+        self._log(f"certbot config dir: {self.certbot_config_dir.resolve()}")
+        self._log(f"certbot work dir: {self.certbot_work_dir.resolve()}")
+        self._log(f"certbot logs dir: {self.certbot_logs_dir.resolve()}")
         self.webroot.mkdir(parents=True, exist_ok=True)
         self.certbot_config_dir.mkdir(parents=True, exist_ok=True)
         self.certbot_work_dir.mkdir(parents=True, exist_ok=True)
@@ -183,28 +192,62 @@ class CertificateManager:
             command.append("--keep-until-expiring")
 
         self._log(f"requesting Let's Encrypt certificate for {', '.join(domains)}")
+        self._log(f"certbot command: {' '.join(command)}")
         try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=self.certbot_timeout_seconds,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            self._log("Let's Encrypt certificate request timed out")
-            return
+            return_code = self._run_certbot(command)
         except Exception as error:
             self._log(f"Let's Encrypt certificate request failed: {error}")
             return
 
-        if result.returncode == 0:
+        self._log(f"certbot finished with exit code {return_code}")
+        self._log(
+            "certificate files after certbot: "
+            f"cert_exists={self.cert_file.is_file()}, key_exists={self.key_file.is_file()}"
+        )
+
+        if return_code == 0:
             self._log("Let's Encrypt certificate request completed")
             return
 
-        error_output = (result.stderr or result.stdout or "").strip()
-        self._log(f"Let's Encrypt certificate request failed: {error_output}")
+        self._log("Let's Encrypt certificate request failed; see certbot output above")
+
+    def _run_certbot(self, command):
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        start_time = time.monotonic()
+        selector = selectors.DefaultSelector()
+        selector.register(process.stdout, selectors.EVENT_READ)
+
+        try:
+            while process.poll() is None:
+                if time.monotonic() - start_time > self.certbot_timeout_seconds:
+                    process.kill()
+                    process.wait()
+                    self._log(f"certbot timed out after {self.certbot_timeout_seconds} seconds")
+                    return process.returncode
+
+                for key, _events in selector.select(timeout=1):
+                    line = key.fileobj.readline()
+                    if line:
+                        self._log_certbot_line(line)
+
+            for line in process.stdout:
+                self._log_certbot_line(line)
+            return process.returncode
+        finally:
+            selector.close()
+            if process.stdout:
+                process.stdout.close()
+
+    def _log_certbot_line(self, line):
+        line = line.rstrip()
+        if line:
+            self._log(f"certbot: {line}")
 
     def _certbot_domains(self):
         domains = []
