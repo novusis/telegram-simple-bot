@@ -129,6 +129,14 @@ docker run -d \
 docker logs -f telegram-simple-bot
 ```
 
+Нормальный первый запуск сертификата:
+
+1. Приложение запускает HTTP на `8080`, снаружи это порт `80`.
+2. `certbot` создает challenge-файл в `web/webroot/.well-known/acme-challenge`.
+3. Let's Encrypt проверяет `http://YOUR_DOMAIN/.well-known/acme-challenge/...`.
+4. После успешной проверки certbot создает `web/certs/live/YOUR_DOMAIN/fullchain.pem` и `privkey.pem`.
+5. Приложение запускает HTTPS на `8443`, снаружи это порт `443`.
+
 Ожидаемые сообщения web-сервера и сертификата:
 
 ```text

@@ -63,7 +63,7 @@ class WebServer:
             print(".web_server stopped", flush=True)
 
     async def start_https(self):
-        ssl_context = self.certificate_manager.prepare_ssl_context()
+        ssl_context = await asyncio.to_thread(self.certificate_manager.prepare_ssl_context)
         if not ssl_context:
             print(".web_server HTTPS was not started: certificate is not ready", flush=True)
             return
