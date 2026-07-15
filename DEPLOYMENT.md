@@ -19,25 +19,23 @@ Web-сервер и Telegram bot запускаются в одном Python-п�
 
 На backend-сервере данные нужно хранить вне контейнера:
 
-- `~/web-bot/telegram-simple-bot/db` - SQLite-базы.
-- `~/web-bot/telegram-simple-bot/certs` - SSL-сертификаты.
-- `~/web-bot/telegram-simple-bot/data/app_config_prod.json` - production-конфиг.
+- `~/telegram-simple-bot/db` - SQLite-базы.
+- `~/telegram-simple-bot/certs` - SSL-сертификаты.
+- `~/telegram-simple-bot/data/app_config_prod.json` - production-конфиг.
 
 Контейнер можно пересоздавать, данные при этом сохранятся.
 
 ## Подготовка Директорий
 
 ```bash
-mkdir -p ~/web-bot/telegram-simple-bot/db
-mkdir -p ~/web-bot/telegram-simple-bot/certs
-mkdir -p ~/web-bot/telegram-simple-bot/data
+mkdir -p ~/telegram-simple-bot/db
+mkdir -p ~/telegram-simple-bot/certs
+mkdir -p ~/telegram-simple-bot/data
 ```
 
 ## Получение Репозитория
 
 ```bash
-mkdir -p ~/web-bot
-cd ~/web-bot
 git clone <YOUR_REPO_URL> telegram-simple-bot-repo
 cd telegram-simple-bot-repo
 ```
@@ -47,8 +45,8 @@ cd telegram-simple-bot-repo
 Создай production-конфиг из примера:
 
 ```bash
-cp data/app_config_prod_example.json ~/web-bot/telegram-simple-bot/data/app_config_prod.json
-nano ~/web-bot/telegram-simple-bot/data/app_config_prod.json
+cp data/app_config_prod_example.json ~/telegram-simple-bot/data/app_config_prod.json
+nano ~/telegram-simple-bot/data/app_config_prod.json
 ```
 
 Минимально нужно заменить:
@@ -89,7 +87,7 @@ nano ~/web-bot/telegram-simple-bot/data/app_config_prod.json
 }
 ```
 
-Внутри контейнера `/app/db` будет смонтирован на внешний каталог `~/web-bot/telegram-simple-bot/db`.
+Внутри контейнера `/app/db` будет смонтирован на внешний каталог `~/telegram-simple-bot/db`.
 
 ## Сборка Docker-Образа
 
@@ -108,9 +106,9 @@ docker run -d \
   -p 8080:8080 \
   -p 8443:8443 \
   -e CONFIG=prod \
-  -v ~/web-bot/telegram-simple-bot/db:/app/db \
-  -v ~/web-bot/telegram-simple-bot/certs:/app/web/certs \
-  -v ~/web-bot/telegram-simple-bot/data/app_config_prod.json:/app/data/app_config_prod.json:ro \
+  -v ~/telegram-simple-bot/db:/app/db \
+  -v ~/telegram-simple-bot/certs:/app/web/certs \
+  -v ~/telegram-simple-bot/data/app_config_prod.json:/app/data/app_config_prod.json:ro \
   telegram-simple-bot:latest
 ```
 
@@ -139,13 +137,13 @@ docker logs -f telegram-simple-bot
 Проверить файлы баз:
 
 ```bash
-ls -la ~/web-bot/telegram-simple-bot/db
+ls -la ~/telegram-simple-bot/db
 ```
 
 Проверить сертификаты:
 
 ```bash
-ls -la ~/web-bot/telegram-simple-bot/certs/selfsigned
+ls -la ~/telegram-simple-bot/certs/selfsigned
 ```
 
 Должны появиться:
@@ -186,7 +184,7 @@ docker rm telegram-simple-bot
 ## Обновление Приложения
 
 ```bash
-cd ~/web-bot/telegram-simple-bot-repo
+cd ~/telegram-simple-bot-repo
 git pull
 docker build -t telegram-simple-bot:latest .
 docker stop telegram-simple-bot
