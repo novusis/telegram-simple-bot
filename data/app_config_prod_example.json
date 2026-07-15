@@ -1,10 +1,10 @@
 {
   "application": {
     "admins": [
-      "novusis"
+      "YOUR_TELEGRAM_USERNAME"
     ],
-    "token": "YOUR_TELEGRAM_TOKEN",
-    "app_url": "YOUR_WEB_APP_URL",
+    "token": "YOUR_TELEGRAM_BOT_TOKEN",
+    "app_url": "https://YOUR_DOMAIN:8443",
     "short_game_name": "YOUR_SHORT_GAME_NAME",
     "templates_data": "data/templates_data.json",
     "db_uri": "db/application.db",
@@ -24,9 +24,9 @@
         "port": 8443,
         "cert_file": "web/certs/selfsigned/fullchain.pem",
         "key_file": "web/certs/selfsigned/privkey.pem",
-        "common_name": "localhost",
+        "common_name": "YOUR_DOMAIN",
         "alt_names": [
-          "localhost",
+          "YOUR_DOMAIN",
           "127.0.0.1"
         ],
         "valid_days": 365,
@@ -36,7 +36,7 @@
       },
       "domains": [
         {
-          "domain": "localhost",
+          "domain": "YOUR_DOMAIN",
           "root": "web/webroot",
           "index": "index.html"
         }

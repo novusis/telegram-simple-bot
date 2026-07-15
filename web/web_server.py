@@ -17,7 +17,7 @@ class WebServer:
         self.config = config if config is not None else GameConfig.app_optional("web_server", {})
         self.config = self.config or {}
         self.enabled = self.config.get("enabled", False)
-        self.host = self.config.get("host", "0.0.0.0")
+        self.bind_host = "0.0.0.0"
         self.port = int(self.config.get("port", 8080))
         self.default_root = Path(self.config.get("webroot", "web/webroot")).resolve()
         self.default_index = self.config.get("index", "index.html")
@@ -49,9 +49,9 @@ class WebServer:
         app = self.create_app()
         self.runner = web.AppRunner(app)
         await self.runner.setup()
-        self.http_site = web.TCPSite(self.runner, self.host, self.port)
+        self.http_site = web.TCPSite(self.runner, self.bind_host, self.port)
         await self.http_site.start()
-        print(f".web_server started on {self.host}:{self.port}", flush=True)
+        print(f".web_server started on {self.bind_host}:{self.port}", flush=True)
         await self.start_https()
 
     async def stop(self):
@@ -68,11 +68,10 @@ class WebServer:
             print(".web_server HTTPS was not started: certificate is not ready", flush=True)
             return
 
-        ssl_host = self.ssl_config.get("host", self.host)
         ssl_port = int(self.ssl_config.get("port", 8443))
-        self.https_site = web.TCPSite(self.runner, ssl_host, ssl_port, ssl_context=ssl_context)
+        self.https_site = web.TCPSite(self.runner, self.bind_host, ssl_port, ssl_context=ssl_context)
         await self.https_site.start()
-        print(f".web_server HTTPS started on {ssl_host}:{ssl_port}", flush=True)
+        print(f".web_server HTTPS started on {self.bind_host}:{ssl_port}", flush=True)
 
         if self.close_http_after_ssl_start and self.http_site:
             print(".web_server stopping HTTP bootstrap site after HTTPS start", flush=True)
