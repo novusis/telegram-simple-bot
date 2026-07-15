@@ -1,7 +1,11 @@
 import ipaddress
+import os
+import shutil
 import ssl
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 class CertificateManager:
@@ -10,11 +14,26 @@ class CertificateManager:
         self.enabled = self.config.get("enabled", False)
         self.cert_file = Path(self.config.get("cert_file", "web/certs/selfsigned/fullchain.pem"))
         self.key_file = Path(self.config.get("key_file", "web/certs/selfsigned/privkey.pem"))
-        self.common_name = self.config.get("common_name", "localhost")
-        self.alt_names = self.config.get("alt_names", [self.common_name])
+        self.common_name = self._normalize_domain_name(self.config.get("common_name", "localhost"))
+        self.alt_names = [
+            normalized
+            for normalized in (
+                self._normalize_domain_name(name)
+                for name in self.config.get("alt_names", [self.common_name])
+            )
+            if normalized
+        ]
         self.valid_days = int(self.config.get("valid_days", 365))
         self.renew_before_days = int(self.config.get("renew_before_days", 30))
         self.create_self_signed = self.config.get("create_self_signed", True)
+        self.letsencrypt_enabled = self.config.get("letsencrypt_enabled", False)
+        self.email = self.config.get("email", "")
+        self.webroot = Path(self.config.get("webroot", "web/webroot"))
+        self.certbot_config_dir = Path(self.config.get("certbot_config_dir", "web/certs"))
+        self.certbot_work_dir = Path(self.config.get("certbot_work_dir", "web/certs/work"))
+        self.certbot_logs_dir = Path(self.config.get("certbot_logs_dir", "web/certs/logs"))
+        self.force_renewal = self.config.get("force_renewal", False)
+        self.certbot_timeout_seconds = int(self.config.get("certbot_timeout_seconds", 300))
 
     def prepare_ssl_context(self):
         if not self.enabled:
@@ -27,16 +46,23 @@ class CertificateManager:
             self._log(f"certificate is valid until {cert_state['not_after'].isoformat()}")
         else:
             self._log(f"certificate is not ready: {cert_state['reason']}")
-            if not self.create_self_signed:
-                self._log("self-signed certificate creation disabled; HTTPS will not start")
-                return None
+            if self.letsencrypt_enabled:
+                self.renew_certificate()
+                cert_state = self.check_certificate()
+                if cert_state["valid"]:
+                    self._log(f"certificate renewed and valid until {cert_state['not_after'].isoformat()}")
 
-            self.create_certificate()
-            cert_state = self.check_certificate()
             if not cert_state["valid"]:
-                self._log(f"certificate creation failed: {cert_state['reason']}")
-                return None
-            self._log(f"certificate created and valid until {cert_state['not_after'].isoformat()}")
+                if not self.create_self_signed:
+                    self._log("certificate creation fallback disabled; HTTPS will not start")
+                    return None
+
+                self.create_certificate()
+                cert_state = self.check_certificate()
+                if not cert_state["valid"]:
+                    self._log(f"certificate creation failed: {cert_state['reason']}")
+                    return None
+                self._log(f"certificate created and valid until {cert_state['not_after'].isoformat()}")
 
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(str(self.cert_file), str(self.key_file))
@@ -113,6 +139,98 @@ class CertificateManager:
         self.key_file.chmod(0o600)
         self.cert_file.chmod(0o644)
         self._log(f"self-signed certificate files written: cert={self.cert_file}, key={self.key_file}")
+
+    def renew_certificate(self):
+        if not self.email:
+            self._log("cannot request Let's Encrypt certificate: email is missing")
+            return
+        if shutil.which("certbot") is None:
+            self._log("cannot request Let's Encrypt certificate: certbot is not installed")
+            return
+
+        domains = self._certbot_domains()
+        if not domains:
+            self._log("cannot request Let's Encrypt certificate: no DNS domain names configured")
+            return
+
+        self.webroot.mkdir(parents=True, exist_ok=True)
+        self.certbot_config_dir.mkdir(parents=True, exist_ok=True)
+        self.certbot_work_dir.mkdir(parents=True, exist_ok=True)
+        self.certbot_logs_dir.mkdir(parents=True, exist_ok=True)
+        command = [
+            "certbot",
+            "certonly",
+            "--webroot",
+            "-w",
+            str(self.webroot),
+            "--config-dir",
+            str(self.certbot_config_dir),
+            "--work-dir",
+            str(self.certbot_work_dir),
+            "--logs-dir",
+            str(self.certbot_logs_dir),
+            "--non-interactive",
+            "--agree-tos",
+            "--email",
+            self.email,
+        ]
+        for domain in domains:
+            command.extend(["-d", domain])
+
+        if self.force_renewal or os.getenv("MAKE_CERT", "n").lower() == "y":
+            command.append("--force-renewal")
+        else:
+            command.append("--keep-until-expiring")
+
+        self._log(f"requesting Let's Encrypt certificate for {', '.join(domains)}")
+        try:
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=self.certbot_timeout_seconds,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            self._log("Let's Encrypt certificate request timed out")
+            return
+        except Exception as error:
+            self._log(f"Let's Encrypt certificate request failed: {error}")
+            return
+
+        if result.returncode == 0:
+            self._log("Let's Encrypt certificate request completed")
+            return
+
+        error_output = (result.stderr or result.stdout or "").strip()
+        self._log(f"Let's Encrypt certificate request failed: {error_output}")
+
+    def _certbot_domains(self):
+        domains = []
+        for name in [self.common_name, *self.alt_names]:
+            if not name:
+                continue
+            try:
+                ipaddress.ip_address(name)
+                continue
+            except ValueError:
+                pass
+            if name not in domains:
+                domains.append(name)
+        return domains
+
+    @staticmethod
+    def _normalize_domain_name(name):
+        name = str(name or "").strip()
+        if not name:
+            return ""
+
+        parsed = urlparse(name if "://" in name else f"//{name}")
+        hostname = parsed.hostname
+        if hostname:
+            return hostname.lower()
+        return name.split("/", 1)[0].split(":", 1)[0].lower()
 
     def _make_alt_names(self, x509):
         alt_names = []

@@ -12,6 +12,7 @@ COPY requirements.txt ./
 
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir certbot
 
 # Копируем все файлы в контейнер
 COPY . .

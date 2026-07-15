@@ -4,7 +4,7 @@
       "YOUR_TELEGRAM_USERNAME"
     ],
     "token": "YOUR_TELEGRAM_BOT_TOKEN",
-    "app_url": "https://YOUR_DOMAIN:8443",
+    "app_url": "https://YOUR_DOMAIN",
     "short_game_name": "YOUR_SHORT_GAME_NAME",
     "templates_data": "data/templates_data.json",
     "db_uri": "db/application.db",
@@ -22,17 +22,19 @@
       "ssl": {
         "enabled": true,
         "port": 8443,
-        "cert_file": "web/certs/selfsigned/fullchain.pem",
-        "key_file": "web/certs/selfsigned/privkey.pem",
+        "cert_file": "web/certs/live/YOUR_DOMAIN/fullchain.pem",
+        "key_file": "web/certs/live/YOUR_DOMAIN/privkey.pem",
         "common_name": "YOUR_DOMAIN",
+        "email": "YOUR_EMAIL",
+        "webroot": "web/webroot",
         "alt_names": [
-          "YOUR_DOMAIN",
-          "127.0.0.1"
+          "YOUR_DOMAIN"
         ],
         "valid_days": 365,
         "renew_before_days": 30,
-        "create_self_signed": true,
-        "close_http_after_ssl_start": true
+        "letsencrypt_enabled": true,
+        "create_self_signed": false,
+        "close_http_after_ssl_start": false
       },
       "domains": [
         {

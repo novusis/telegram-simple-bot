@@ -11,7 +11,7 @@
 - SQLite-базы для приложения, ресурсов и аналитики.
 - Встроенный `aiohttp` web-сервер для отдачи страниц по домену.
 - API web-сервера, использующее те же модели, что и Telegram bot.
-- Самоподписываемый SSL-сертификат для HTTPS, создаваемый при старте.
+- HTTPS-сертификат Let's Encrypt, создаваемый через `certbot` при старте.
 
 Web-сервер и Telegram bot запускаются в одном Python-процессе и используют общие модели.
 
@@ -20,7 +20,7 @@ Web-сервер и Telegram bot запускаются в одном Python-п�
 На backend-сервере данные нужно хранить вне контейнера:
 
 - `~/telegram-simple-bot/db` - SQLite-базы.
-- `~/telegram-simple-bot/certs` - SSL-сертификаты.
+- `~/telegram-simple-bot/certs` - SSL-сертификаты Let's Encrypt.
 - `~/telegram-simple-bot/data/app_config_prod.json` - production-конфиг.
 
 Контейнер можно пересоздавать, данные при этом сохранятся.
@@ -56,21 +56,30 @@ nano ~/telegram-simple-bot/data/app_config_prod.json
   "application": {
     "admins": ["YOUR_TELEGRAM_USERNAME"],
     "token": "YOUR_TELEGRAM_BOT_TOKEN",
-    "app_url": "https://YOUR_DOMAIN:8443",
+    "app_url": "https://YOUR_DOMAIN",
     "short_game_name": "YOUR_SHORT_GAME_NAME"
   }
 }
 ```
 
-В секции `web_server.ssl` замени домен:
+В секции `web_server.ssl` замени домен и email:
 
 ```json
 {
+  "enabled": true,
+  "port": 8443,
+  "cert_file": "web/certs/live/YOUR_DOMAIN/fullchain.pem",
+  "key_file": "web/certs/live/YOUR_DOMAIN/privkey.pem",
   "common_name": "YOUR_DOMAIN",
+  "email": "YOUR_EMAIL",
+  "webroot": "web/webroot",
   "alt_names": [
-    "YOUR_DOMAIN",
-    "127.0.0.1"
-  ]
+    "YOUR_DOMAIN"
+  ],
+  "renew_before_days": 30,
+  "letsencrypt_enabled": true,
+  "create_self_signed": false,
+  "close_http_after_ssl_start": false
 }
 ```
 
@@ -103,8 +112,8 @@ docker build -t telegram-simple-bot:latest .
 docker run -d \
   --name telegram-simple-bot \
   --restart unless-stopped \
-  -p 8080:8080 \
-  -p 8443:8443 \
+  -p 80:8080 \
+  -p 443:8443 \
   -e CONFIG=prod \
   -v ~/telegram-simple-bot/db:/app/db \
   -v ~/telegram-simple-bot/certs:/app/web/certs \
@@ -124,14 +133,13 @@ docker logs -f telegram-simple-bot
 
 ```text
 .web_server started on 0.0.0.0:8080
-.certificate_manager checking certificate: cert=web/certs/selfsigned/fullchain.pem, key=web/certs/selfsigned/privkey.pem
+.certificate_manager checking certificate: cert=web/certs/live/YOUR_DOMAIN/fullchain.pem, key=web/certs/live/YOUR_DOMAIN/privkey.pem
 .certificate_manager certificate is not ready: certificate file is missing
-.certificate_manager creating self-signed certificate for YOUR_DOMAIN
-.certificate_manager self-signed certificate files written: cert=..., key=...
-.certificate_manager certificate created and valid until ...
+.certificate_manager requesting Let's Encrypt certificate for YOUR_DOMAIN
+.certificate_manager Let's Encrypt certificate request completed
+.certificate_manager certificate renewed and valid until ...
 .certificate_manager SSL context is ready
 .web_server HTTPS started on 0.0.0.0:8443
-.web_server stopping HTTP bootstrap site after HTTPS start
 ```
 
 Проверить файлы баз:
@@ -143,7 +151,7 @@ ls -la ~/telegram-simple-bot/db
 Проверить сертификаты:
 
 ```bash
-ls -la ~/telegram-simple-bot/certs/selfsigned
+ls -la ~/telegram-simple-bot/certs/live/YOUR_DOMAIN
 ```
 
 Должны появиться:
@@ -164,12 +172,12 @@ Health endpoint:
 curl http://localhost:8080/api/health
 ```
 
-Если `close_http_after_ssl_start` включен, HTTP может быть закрыт после успешного старта HTTPS.
+HTTP должен оставаться включенным, потому что Let's Encrypt проверяет домен через порт `80`.
 
-Проверка HTTPS с самоподписанным сертификатом:
+Проверка HTTPS:
 
 ```bash
-curl -k https://localhost:8443/api/health
+curl https://YOUR_DOMAIN/api/health
 ```
 
 ## Остановка И Удаление Контейнера
@@ -209,8 +217,10 @@ make run_local
 
 ## Важные Порты
 
-- `8080` - HTTP bootstrap/web.
-- `8443` - HTTPS web.
+- `80` - внешний HTTP, проброшен в контейнерный `8080`; нужен для Let's Encrypt.
+- `443` - внешний HTTPS, проброшен в контейнерный `8443`.
+- `8080` - HTTP внутри контейнера.
+- `8443` - HTTPS внутри контейнера.
 
 Если сервер находится за firewall, открой нужные порты.
 
@@ -219,6 +229,6 @@ make run_local
 - `data/app_config_prod_example.json` - пример production-конфига.
 - `data/app_config_local.json` - локальный конфиг, не коммитится.
 - `web/web_server.py` - web-сервер.
-- `web/certificates.py` - проверка и создание self-signed сертификата.
+- `web/certificates.py` - проверка и выпуск HTTPS-сертификата.
 - `simple_game.py` - общая игровая модель для Telegram и web.
 - `models/database.py` - SQLite manager и буферная аналитика `info`.
