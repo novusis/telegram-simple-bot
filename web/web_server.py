@@ -131,6 +131,14 @@ class WebServer:
     async def handle_file(self, request):
         rel_path = request.match_info.get("path", "")
         root, index = self._site_for_request(request)
+        if self._needs_directory_redirect(root, rel_path):
+            redirect_url = (
+                request.rel_url
+                .with_path(request.path + "/")
+                .with_query(request.query_string)
+            )
+            raise web.HTTPPermanentRedirect(str(redirect_url))
+
         file_path = self._resolve_file(root, rel_path, index)
         if not file_path:
             raise web.HTTPNotFound()
@@ -164,6 +172,21 @@ class WebServer:
         if not file_path.is_file():
             return None
         return file_path
+
+    @staticmethod
+    def _needs_directory_redirect(root, rel_path):
+        if not rel_path or rel_path.endswith("/"):
+            return False
+
+        clean_path = rel_path.strip("/")
+        file_path = (root / clean_path).resolve()
+
+        try:
+            file_path.relative_to(root)
+        except ValueError:
+            return False
+
+        return file_path.is_dir()
 
     def _make_domain_roots(self, domains):
         result = {}
