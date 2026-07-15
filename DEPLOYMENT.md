@@ -108,6 +108,16 @@ docker build -t telegram-simple-bot:latest .
 
 ## Запуск Контейнера
 
+Автоматический деплой из директории репозитория:
+
+```bash
+./deploy_backend.sh
+```
+
+Скрипт выполнит `git pull`, удалит старый контейнер `telegram-simple-bot` если он есть, пересоберет Docker-образ, запустит контейнер и через 1 секунду откроет `docker logs -f`.
+
+Ручной запуск:
+
 ```bash
 docker run -d \
   --name telegram-simple-bot \
