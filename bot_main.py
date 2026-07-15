@@ -243,6 +243,7 @@ async def online_check():
         for telegram_id in closed_sessions.keys():
             session_time = closed_sessions[telegram_id]
             simple_analytics.set_session(telegram_id, session_time)
+        game.flush_info()
         #     print(f".online_check > session.key <{telegram_id} = {closed_sessions[telegram_id]}>")
         # print(f".online_check > 2 online <{game.get_online()}>")
 
@@ -256,17 +257,46 @@ async def bot_1():
 
 
 async def main():
-    await asyncio.gather(bot_1(), online_check())
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+
+    def request_shutdown(signal_name):
+        print(f"{signal_name} received, shutting down...")
+        stop_event.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, request_shutdown, sig.name)
+        except NotImplementedError:
+            signal.signal(
+                sig,
+                lambda signal_number, _frame: loop.call_soon_threadsafe(
+                    request_shutdown,
+                    signal.Signals(signal_number).name
+                )
+            )
+
+    bot_task = asyncio.create_task(bot_1(), name="bot_1")
+    online_task = asyncio.create_task(online_check(), name="online_check")
+    stop_task = asyncio.create_task(stop_event.wait(), name="shutdown_signal")
+    tasks = [bot_task, online_task]
+
+    try:
+        done, _pending = await asyncio.wait([*tasks, stop_task], return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            if task is stop_task or task.cancelled():
+                continue
+            exception = task.exception()
+            if exception:
+                raise exception
+    finally:
+        stop_task.cancel()
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(stop_task, *tasks, return_exceptions=True)
+        game.flush_info(force=True)
+        await bot.session.close()
 
 
 if __name__ == '__main__':
     asyncio.run(main())
-
-
-def handle_sigint(_signal, _frame):
-    print('SIGINT received, cancelling tasks...')
-    for task in asyncio.all_tasks():
-        task.cancel()
-
-
-signal.signal(signal.SIGINT, handle_sigint)

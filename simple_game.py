@@ -2,7 +2,7 @@ import utils
 from data.game_config import GameConfig
 from models.db_invoices import Invoice
 from models.db_user import User, UserFollower
-from models.database import ModelManager, Database, QueryOptions, DBInfo, DBVar
+from models.database import BufferedInfoManager, ModelManager, Database, QueryOptions, DBInfo, DBVar
 
 
 class ShopSlotItem:
@@ -47,7 +47,8 @@ class GameController:
         ]
 
         self.db = Database(GameConfig.app('db_uri'))
-        self.info = ModelManager('info', DBInfo, self.db)
+        self.info_store = ModelManager('info', DBInfo, self.db)
+        self.info = BufferedInfoManager(self.info_store)
         self.vars = ModelManager('vars', DBVar, self.db)
         self.users = ModelManager('users', User, self.db, self.info)
         self.followers = ModelManager('user_followers', UserFollower, self.db)
@@ -69,6 +70,9 @@ class GameController:
 
     def check_online(self):
         return self.cache_users.check_online()
+
+    def flush_info(self, force=False):
+        self.info.flush(force)
 
     def register_user(self, external_id, username, name, chat_id):
         new_user = User(

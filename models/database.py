@@ -1,6 +1,6 @@
 import json
 import sqlite3
-import time
+from copy import copy
 
 import utils
 
@@ -40,6 +40,153 @@ class QueryOptions:
         self.order_direction = order_direction  # 'ASC' и 'DESC'
         self.limit = limit
         self.offset = offset
+
+
+class BufferedInfoManager:
+    """
+    Buffers DBInfo updates so reads do not immediately write back to SQLite.
+    The public read methods mirror ModelManager enough for existing code that
+    reads game.info directly.
+    """
+
+    def __init__(self, info_manager, batch_size=100, flush_interval_seconds=30):
+        self.info_manager = info_manager
+        self.batch_size = batch_size
+        self.flush_interval_seconds = flush_interval_seconds
+        self.pending = {}
+        self.pending_events = 0
+        self.last_flush_time = utils.now_unix_time()
+
+    def record_get(self, table_name, target_id):
+        self._record(table_name, target_id, get_count=1)
+
+    def record_set(self, table_name, target_id):
+        self._record(table_name, target_id, set_count=1)
+        self.flush(force=True)
+
+    def record_delete(self, table_name, target_id):
+        self._record(table_name, target_id, delete=True)
+        self.flush(force=True)
+
+    def flush(self, force=False):
+        if not self.pending:
+            return
+
+        now = utils.now_unix_time()
+        if not force and self.pending_events < self.batch_size and now - self.last_flush_time < self.flush_interval_seconds:
+            return
+
+        pending_items = list(self.pending.items())
+        self.pending = {}
+        self.pending_events = 0
+        self.last_flush_time = now
+
+        for key, pending_info in pending_items:
+            table_name, target_id = key
+            stored_items = self.info_manager.filter_by_fields({
+                'table_name': table_name,
+                'target_id': target_id
+            })
+            if stored_items:
+                info = stored_items[0]
+                self._merge_info(info, pending_info)
+            else:
+                info = pending_info
+            self.info_manager.set(info)
+
+    def all(self, query_options=None):
+        items = self.info_manager.all(query_options)
+        return self._apply_pending_to_items(items)
+
+    def get(self, id):
+        item = self.info_manager.get(id)
+        if not item:
+            return None
+        return self._apply_pending_to_item(item)
+
+    def filter_by_field(self, field_name, field_value, query_options=None):
+        items = self.info_manager.filter_by_field(field_name, field_value, query_options)
+        return self._apply_pending_to_items(items, {field_name: field_value})
+
+    def filter_by_fields(self, fields_dict, query_options=None):
+        items = self.info_manager.filter_by_fields(fields_dict, query_options)
+        return self._apply_pending_to_items(items, fields_dict)
+
+    def set(self, model):
+        return self.info_manager.set(model)
+
+    def delete(self, id):
+        return self.info_manager.delete(id)
+
+    def _record(self, table_name, target_id, get_count=0, set_count=0, delete=False):
+        if target_id is None:
+            return
+
+        current_time = utils.now_unix_time()
+        key = (table_name, target_id)
+        info = self.pending.get(key)
+        if not info:
+            initial_set_time = current_time if get_count or set_count else 0
+            info = DBInfo(None, table_name, target_id, current_time, initial_set_time, 0, 0, 0, 0)
+            self.pending[key] = info
+
+        if set_count:
+            info.set_time = current_time
+            info.set_count += set_count
+        if get_count:
+            info.get_time = current_time
+            info.get_count += get_count
+        if delete:
+            info.delete_time = current_time
+
+        self.pending_events += get_count + set_count + (1 if delete else 0)
+        self.flush()
+
+    def _apply_pending_to_items(self, items, fields_filter=None):
+        result = []
+        seen_keys = set()
+
+        for item in items:
+            item = self._apply_pending_to_item(item)
+            seen_keys.add((item.table_name, item.target_id))
+            result.append(item)
+
+        for key, pending_info in self.pending.items():
+            if key in seen_keys:
+                continue
+            if fields_filter and not self._matches_filter(pending_info, fields_filter):
+                continue
+            result.append(copy(pending_info))
+
+        return result
+
+    def _apply_pending_to_item(self, item):
+        key = (item.table_name, item.target_id)
+        pending_info = self.pending.get(key)
+        item = copy(item)
+        if pending_info:
+            self._merge_info(item, pending_info)
+        return item
+
+    @staticmethod
+    def _matches_filter(info, fields_filter):
+        for field, value in fields_filter.items():
+            if getattr(info, field) != value:
+                return False
+        return True
+
+    @staticmethod
+    def _merge_info(info, pending_info):
+        if not info.create_time:
+            info.create_time = pending_info.create_time
+        if pending_info.set_time:
+            info.set_time = pending_info.set_time
+        if pending_info.get_time:
+            info.get_time = pending_info.get_time
+        if pending_info.delete_time:
+            info.delete_time = pending_info.delete_time
+        info.set_count += pending_info.set_count
+        info.get_count += pending_info.get_count
 
 
 class ModelManager:
@@ -83,9 +230,6 @@ class ModelManager:
     def set(self, model):
         fields_and_value = {}
 
-        if self.info and self.table_name != 'info':
-            utils.log_stack(f"ModelManager.set > self <{self.table_name}>:\n", limit=5)
-
         for field in model.Fields:
             value = model[field]
             field_type = model.Fields[field][0]
@@ -102,7 +246,8 @@ class ModelManager:
         else:
             self.db.update_record(self.table_name, model.id, fields_and_value)
 
-        self._make_info(model, self._info_set)
+        if self.info:
+            self.info.record_set(self.table_name, model.id)
 
         return model.id
 
@@ -115,7 +260,7 @@ class ModelManager:
 
         for index, value in enumerate(record):
             if 0 < index <= len(fields) and fields[index - 1][0] == "JSON":
-                if value is "":
+                if value == "":
                     result.append(fields[index - 1][1])
                 else:
                     result.append(json.loads(value))
@@ -123,17 +268,6 @@ class ModelManager:
                 result.append(value)
 
         return result
-
-    def _make_info(self, model, informer):
-        if self.info:
-            current_time = utils.now_unix_time()
-            targets = self.info.filter_by_fields({'table_name': self.table_name, 'target_id': model.id})
-            if len(targets) > 0:
-                target = targets[0]
-            else:
-                target = DBInfo(None, self.table_name, model.id, current_time, current_time, 0, 0, 0, 0)
-            informer(target, current_time)
-            self.info.set(target)
 
     def filter_by_field(self, field_name, field_value, query_options=None):
         results = []
@@ -183,10 +317,7 @@ class ModelManager:
     def delete(self, id):
         self.db.delete_record(self.table_name, id)
         if self.info:
-            targets = self.info.filter_by_fields({'table_name': self.table_name, 'target_id': id})
-            if len(targets) > 0:
-                targets[0].delete_time = time.time()
-                self.info.set(targets[0])
+            self.info.record_delete(self.table_name, id)
 
     def delete_by_field(self, filed, value):
         items = self.filter_by_field(filed, value)
@@ -196,18 +327,9 @@ class ModelManager:
 
     def _make_model(self, record):
         model = self.model_class(*record)
-        self._make_info(model, self._info_get)
+        if self.info:
+            self.info.record_get(self.table_name, model.id)
         return model
-
-    @staticmethod
-    def _info_set(target, current_time):
-        target.set_time = current_time
-        target.set_count += 1
-
-    @staticmethod
-    def _info_get(target, current_time):
-        target.get_time = current_time
-        target.get_count += 1
 
 
 class DBModel:
