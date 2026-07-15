@@ -16,5 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем все файлы в контейнер
 COPY . .
 
+EXPOSE 8080 8443
+VOLUME ["/app/web/certs"]
+
 # Команда, которую запускает контейнер
 CMD ["python", "./bot_main.py"]

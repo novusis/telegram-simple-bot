@@ -1,0 +1,93 @@
+/* modal-auth.css — стили модального окна авторизации */
+.auth-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 1000;
+}
+
+.auth-modal.open { display: block; }
+
+.auth-modal .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(6px) saturate(140%);
+}
+
+.auth-modal .dialog {
+    position: relative;
+    z-index: 1001;
+    width: min(520px, calc(100% - 32px));
+    margin: 8vh auto 0 auto;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(2, 6, 23, 0.20);
+    overflow: hidden;
+}
+
+.auth-modal .dialog .pad {
+    padding: 18px;
+}
+
+.auth-modal .title {
+    margin: 0 0 6px 0;
+    font-size: 22px;
+}
+
+.auth-modal .muted {
+    color: #475569;
+    margin: 0 0 12px 0;
+}
+
+.auth-modal .field {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0;
+}
+
+.auth-modal .field label {
+    font-weight: 600;
+}
+
+.auth-modal .field input {
+    padding: 12px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+}
+
+.auth-modal .field input:focus {
+    border-color: #7C3AED;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, .15);
+}
+
+.auth-modal .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+/* кнопки */
+.btn[disabled] {
+    opacity: .6;
+    pointer-events: none;
+}
+
+.btn-secondary {
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+}
+
+/* сообщения об ошибке */
+.auth-modal .error {
+    color: #b91c1c;
+    font-size: 14px;
+    margin-top: 4px;
+    min-height: 18px;
+}

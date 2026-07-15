@@ -39,6 +39,12 @@ class GameConfig:
         return GameConfig.app_config['application'][field]
 
     @staticmethod
+    def app_optional(field, default=None):
+        if not GameConfig.app_config or 'application' not in GameConfig.app_config:
+            return default
+        return GameConfig.app_config['application'].get(field, default)
+
+    @staticmethod
     def bonus_for_followers(field):
         config_url = GameConfig.SHOP_CONFIG_PATH
         if not GameConfig.app_config:

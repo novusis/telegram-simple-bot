@@ -21,6 +21,7 @@ from simple_resources import SimpleResources
 
 from simple_game import GameController
 from utils import convert_seconds_to_hm
+from web.web_server import run_web_server
 import time
 
 """
@@ -278,8 +279,9 @@ async def main():
 
     bot_task = asyncio.create_task(bot_1(), name="bot_1")
     online_task = asyncio.create_task(online_check(), name="online_check")
+    web_task = asyncio.create_task(run_web_server(game, stop_event), name="web_server")
     stop_task = asyncio.create_task(stop_event.wait(), name="shutdown_signal")
-    tasks = [bot_task, online_task]
+    tasks = [bot_task, online_task, web_task]
 
     try:
         done, _pending = await asyncio.wait([*tasks, stop_task], return_when=asyncio.FIRST_COMPLETED)

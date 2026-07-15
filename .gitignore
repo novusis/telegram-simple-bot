@@ -1,6 +1,7 @@
 # application
 /db/
 /data/app_config_dev.json
+/data/app_config_local.json
 /data/app_config_prod.json
 
 # phyton

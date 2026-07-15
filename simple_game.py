@@ -134,6 +134,17 @@ class GameController:
         top_players_list = self.users.filter_by_field('bot', False, QueryOptions("scores", QueryOptions.SORT_DESC, limit))
         return top_players_list
 
+    def set_user_score(self, external_id, scores):
+        user = self.get_user(external_id)
+        if not user:
+            return None
+
+        scores = int(scores)
+        if scores > user.scores:
+            user.scores = scores
+            self.users_set(user)
+        return user
+
     def get_stars_shop_item_by_invoice(self, invoice_id):
         invoice = self.invoices.get(invoice_id)
         if not invoice:

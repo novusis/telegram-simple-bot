@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from copy import copy
+from pathlib import Path
 
 import utils
 
@@ -393,6 +394,9 @@ class DBInfo(DBModel):
 class Database:
     def __init__(self, db_name):
         self.db_name = db_name
+        db_path = Path(db_name)
+        if db_path.parent != Path("."):
+            db_path.parent.mkdir(parents=True, exist_ok=True)
 
     def get_column_names(self, table_name):
         conn = sqlite3.connect(self.db_name)
