@@ -4,12 +4,27 @@ import os
 import utils
 
 
+def _load_json_config(path, config_name):
+    if not os.path.isfile(path):
+        example_path = f"data/app_config_{config_name}_example.json"
+        fallback_example_path = "data/app_config_example.json"
+        raise FileNotFoundError(
+            f"Config file not found: {path}. "
+            f"CONFIG={config_name}. "
+            f"Create it from {example_path} or {fallback_example_path}. "
+            f"For Docker, mount it to /app/{path}."
+        )
+
+    with open(path, 'r') as f:
+        return json.load(f)
+
+
 class GameConfig:
-    APP_CONFIG_PATH = f"data/app_config_{os.getenv('CONFIG', 'dev')}.json"
+    CONFIG_NAME = os.getenv('CONFIG', 'dev')
+    APP_CONFIG_PATH = f"data/app_config_{CONFIG_NAME}.json"
     SHOP_CONFIG_PATH = "data/shop_config.json"
 
-    with open(APP_CONFIG_PATH, 'r') as f:
-        app_config = json.load(f)
+    app_config = _load_json_config(APP_CONFIG_PATH, CONFIG_NAME)
 
     with open(SHOP_CONFIG_PATH, 'r') as f:
         stars_shop = json.load(f)
