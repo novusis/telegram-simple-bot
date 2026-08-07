@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir certbot
 COPY . .
 
 EXPOSE 8080 8443
-VOLUME ["/app/web/certs"]
+VOLUME ["/app/web/certs", "/app/web/webroot"]
 
 # Команда, которую запускает контейнер
 CMD ["python", "./bot_main.py"]

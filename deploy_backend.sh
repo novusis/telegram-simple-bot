@@ -8,17 +8,20 @@ DATA_DIR="${DATA_DIR:-$HOME/telegram-simple-bot}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+WEBROOT_DIR="${WEBROOT_DIR:-$SCRIPT_DIR/web/webroot}"
 
 echo ".deploy repo: $SCRIPT_DIR"
 echo ".deploy app: $APP_NAME"
 echo ".deploy image: $IMAGE_NAME"
 echo ".deploy data dir: $DATA_DIR"
+echo ".deploy webroot dir: $WEBROOT_DIR"
 
 echo ".deploy pulling latest git changes"
 git pull
 
 echo ".deploy preparing external directories"
 mkdir -p "$DATA_DIR/db" "$DATA_DIR/certs" "$DATA_DIR/data"
+mkdir -p "$WEBROOT_DIR"
 
 CONFIG_FILE="$DATA_DIR/data/app_config_${CONFIG_NAME}.json"
 if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -46,8 +49,12 @@ docker run -d \
   -e CONFIG="$CONFIG_NAME" \
   -v "$DATA_DIR/db:/app/db" \
   -v "$DATA_DIR/certs:/app/web/certs" \
+  -v "$WEBROOT_DIR:/app/web/webroot" \
   -v "$CONFIG_FILE:/app/data/app_config_${CONFIG_NAME}.json:ro" \
   "$IMAGE_NAME"
+
+echo ".deploy pruning unused docker images"
+docker image prune -af
 
 echo ".deploy waiting 1 second before logs"
 sleep 1

@@ -22,8 +22,9 @@ Web-сервер и Telegram bot запускаются в одном Python-п�
 - `~/telegram-simple-bot/db` - SQLite-базы.
 - `~/telegram-simple-bot/certs` - SSL-сертификаты Let's Encrypt.
 - `~/telegram-simple-bot/data/app_config_prod.json` - production-конфиг.
+- `web/webroot` в директории репозитория - статические файлы web-сервера, смонтированные в контейнер как volume.
 
-Контейнер можно пересоздавать, данные при этом сохранятся.
+Контейнер можно пересоздавать, данные при этом сохранятся. После обновления `web/webroot` достаточно перезапустить контейнер без пересборки Docker-образа.
 
 ## Подготовка Директорий
 
@@ -114,7 +115,20 @@ docker build -t telegram-simple-bot:latest .
 ./deploy_backend.sh
 ```
 
-Скрипт выполнит `git pull`, удалит старый контейнер `telegram-simple-bot` если он есть, пересоберет Docker-образ, запустит контейнер и через 1 секунду откроет `docker logs -f`.
+Скрипт выполнит `git pull`, удалит старый контейнер `telegram-simple-bot` если он есть, пересоберет Docker-образ, запустит контейнер, очистит неиспользуемые Docker-образы через `docker image prune -af` и через 1 секунду откроет `docker logs -f`.
+
+Папка `web/webroot` из директории репозитория монтируется в контейнер как `/app/web/webroot`. Поэтому статические файлы можно обновлять отдельно от Docker-образа:
+
+```bash
+git pull
+docker restart telegram-simple-bot
+```
+
+Если нужно смонтировать другой каталог со статикой, перед запуском деплоя можно задать `WEBROOT_DIR`:
+
+```bash
+WEBROOT_DIR=/srv/telegram-simple-bot/webroot ./deploy_backend.sh
+```
 
 Ручной запуск:
 
@@ -127,6 +141,7 @@ docker run -d \
   -e CONFIG=prod \
   -v ~/telegram-simple-bot/db:/app/db \
   -v ~/telegram-simple-bot/certs:/app/web/certs \
+  -v "$(pwd)/web/webroot:/app/web/webroot" \
   -v ~/telegram-simple-bot/data/app_config_prod.json:/app/data/app_config_prod.json:ro \
   telegram-simple-bot:latest
 ```
@@ -217,7 +232,18 @@ docker stop telegram-simple-bot
 docker rm telegram-simple-bot
 ```
 
-Затем снова выполнить команду запуска контейнера.
+Затем снова выполнить команду запуска контейнера и после успешного старта очистить неиспользуемые образы:
+
+```bash
+docker image prune -af
+```
+
+Если изменялась только папка `web/webroot`, пересборка образа не нужна:
+
+```bash
+git pull
+docker restart telegram-simple-bot
+```
 
 ## Локальный Запуск Только Telegram-Бота
 

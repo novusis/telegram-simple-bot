@@ -50,6 +50,8 @@ sudo mkdir -p /srv/telegram-simple-bot/config
 
 `certs` будет хранить self-signed сертификат вне Docker, чтобы он не терялся при пересоздании контейнера.
 
+`web/webroot` из директории репозитория будет смонтирован в контейнер как volume. После обновления этой папки контейнер можно просто перезапустить без пересборки.
+
 **3. Создать production-конфиг**
 ```bash
 cp data/app_config_example.json /srv/telegram-simple-bot/config/app_config_prod.json
@@ -112,6 +114,7 @@ docker run -d \
   -e CONFIG=prod \
   -v /srv/telegram-simple-bot/db:/app/db \
   -v /srv/telegram-simple-bot/certs:/app/web/certs \
+  -v /opt/telegram-simple-bot/web/webroot:/app/web/webroot \
   -v /srv/telegram-simple-bot/config/app_config_prod.json:/app/data/app_config_prod.json:ro \
   telegram-simple-bot:latest
 ```
@@ -164,8 +167,17 @@ docker run -d \
   -e CONFIG=prod \
   -v /srv/telegram-simple-bot/db:/app/db \
   -v /srv/telegram-simple-bot/certs:/app/web/certs \
+  -v /opt/telegram-simple-bot/web/webroot:/app/web/webroot \
   -v /srv/telegram-simple-bot/config/app_config_prod.json:/app/data/app_config_prod.json:ro \
   telegram-simple-bot:latest
+
+docker image prune -af
 ```
 
 Базы и сертификаты при этом сохранятся во внешнем хранилище.
+
+Если изменялись только статические файлы, пересборка не нужна:
+
+```bash
+docker restart telegram-simple-bot
+```
