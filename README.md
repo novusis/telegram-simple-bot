@@ -31,6 +31,34 @@ make run
 #or
 docker run -d --name python-container-for-simple-bot -v simple-bot-data:/app/db simple-bot-1
 
+## Локальное тестирование в LAN без HTTPS
+
+Для быстрой проверки текущей web-сборки на телефоне можно поднять упрощенный HTTP-сервер без Telegram polling и без HTTPS:
+
+```bash
+make run_web_local
+```
+
+Сервер слушает `0.0.0.0:8080`, поэтому с телефона в той же Wi-Fi сети открывай:
+
+```text
+http://<IP_КОМПЬЮТЕРА>:8080/rubber/
+```
+
+Например:
+
+```text
+http://192.168.0.10:8080/rubber/
+```
+
+Проверка, что сервер жив:
+
+```bash
+curl http://127.0.0.1:8080/api/health
+```
+
+В этом режиме отдаются статические файлы из `web/webroot`. API, которым нужен игровой контроллер бота, например `/api/me` и `/api/share-score`, в standalone-режиме не подключены.
+
 
 Ниже инструкция для backend-сервера с Docker и внешним хранением `db` вне контейнера.
 **1. Получить репозиторий**

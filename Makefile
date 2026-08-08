@@ -17,5 +17,8 @@ build:
 run_local:
 	MPLCONFIGDIR=/private/tmp/telegram-simple-bot-mpl CONFIG=local python3 bot_main.py
 
+run_web_local:
+	CONFIG=local python3 -m web.web_server
+
 run: create_volume
 	docker run -d --name $(CONTAINER_NAME) -p 8080:8080 -p 8443:8443 -v $(VOLUME_NAME):/app/db -v $(CERTS_VOLUME_NAME):/app/web/certs -v $(WEBROOT_DIR):/app/web/webroot $(IMAGE_NAME)
